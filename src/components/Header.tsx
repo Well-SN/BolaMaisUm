@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Tally1 as Ball } from 'lucide-react';
+import { CircleDot as Ball } from 'lucide-react';
 
 const Header: React.FC = () => {
   return (
