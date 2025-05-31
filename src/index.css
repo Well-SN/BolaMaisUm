@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-asphalt text-white;
+  }
+  
+  body {
+    @apply font-street text-base leading-relaxed;
+    font-feature-settings: "pnum" on, "lnum" on;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-graffiti leading-tight font-bold;
+  }
+
+  h1 {
+    @apply text-4xl sm:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl sm:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl sm:text-3xl;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md font-bold uppercase tracking-wider transition-all duration-200 ease-in-out;
+  }
+  
+  .btn-primary {
+    @apply bg-neon-orange text-white hover:bg-opacity-90 active:bg-opacity-100 shadow-neon;
+  }
+  
+  .btn-secondary {
+    @apply bg-neon-blue text-white hover:bg-opacity-90 active:bg-opacity-100 shadow-neon-blue;
+  }
+  
+  .btn-accent {
+    @apply bg-neon-pink text-white hover:bg-opacity-90 active:bg-opacity-100 shadow-neon-pink;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-white bg-transparent hover:bg-white/10 active:bg-white/20;
+  }
+  
+  .input-field {
+    @apply bg-court-light border-2 border-gray-700 rounded-md px-4 py-2 text-white
+           focus:outline-none focus:border-neon-blue shadow-md;
+  }
+  
+  .card {
+    @apply bg-court p-4 rounded-lg border-2 border-court-light shadow-lg;
+  }
+  
+  .team-card {
+    @apply relative bg-court-light border-2 border-gray-700 rounded-lg p-4 
+           transition-all duration-300 hover:border-neon-blue;
+  }
+  
+  .player-item {
+    @apply flex items-center gap-2 p-2 rounded-md bg-court hover:bg-court-light
+           transition-colors duration-200;
+  }
+  
+  .neon-text {
+    @apply text-neon-orange font-bold;
+    text-shadow: 0 0 5px theme('colors.neon-orange'), 0 0 10px rgba(255, 93, 0, 0.5);
+  }
+  
+  .neon-text-blue {
+    @apply text-neon-blue font-bold;
+    text-shadow: 0 0 5px theme('colors.neon-blue'), 0 0 10px rgba(0, 194, 255, 0.5);
+  }
+  
+  .graffiti-text {
+    @apply font-graffiti uppercase tracking-wider;
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.3);
+  }
+  
+  .court-bg {
+    @apply bg-court-texture bg-cover bg-center;
+    background-blend-mode: overlay;
+  }
+  
+  .fence-bg {
+    @apply bg-fence-pattern bg-cover bg-center;
+    background-blend-mode: overlay;
+  }
+}
