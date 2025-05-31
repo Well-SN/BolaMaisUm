@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { User, UsersMinus, Users } from 'lucide-react';
+import { User, UserMinus, Users } from 'lucide-react';
 import { useGame } from '../contexts/GameContext';
 import { ActionType, Player } from '../types';
 import { generateTeamName } from '../utils/gameUtils';
@@ -49,7 +49,7 @@ const UnassignedPlayers: React.FC = () => {
     >
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
-          <UsersMinus size={20} className="text-neon-pink" />
+          <UserMinus size={20} className="text-neon-pink" />
           <h2 className="text-xl font-graffiti">Unassigned Players</h2>
         </div>
         
@@ -77,7 +77,7 @@ const UnassignedPlayers: React.FC = () => {
               onClick={() => handleRemovePlayer(player.id)}
               className="text-gray-500 hover:text-white"
             >
-              <UsersMinus size={16} />
+              <UserMinus size={16} />
             </button>
           </div>
         ))}
