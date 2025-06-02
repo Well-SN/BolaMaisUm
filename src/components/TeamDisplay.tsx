@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Users, UserMinus, Edit } from 'lucide-react';
+import { Users, UserMinus, Edit, Trash } from 'lucide-react';
 import { Team, Player } from '../types';
+import { useGame } from '../contexts/GameContext';
+import toast from 'react-hot-toast';
 
 interface TeamDisplayProps {
   team: Team;
@@ -16,7 +18,21 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
   isNext = false,
   onEdit 
 }) => {
-  // Animation variants
+  const { dispatch } = useGame();
+
+  const handleDeleteTeam = () => {
+    if (isPlaying) {
+      toast.error("Can't delete a team that's currently playing");
+      return;
+    }
+    
+    dispatch({
+      type: ActionType.REMOVE_TEAM,
+      payload: { teamId: team.id }
+    });
+    toast.success('Team deleted');
+  };
+
   const cardVariants = {
     initial: { scale: 0.96, opacity: 0 },
     animate: { 
@@ -63,14 +79,24 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
           </span>
         </h3>
         
-        {onEdit && (
-          <button 
-            onClick={onEdit}
-            className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-court transition-colors"
-          >
-            <Edit size={16} />
-          </button>
-        )}
+        <div className="flex gap-2">
+          {onEdit && (
+            <button 
+              onClick={onEdit}
+              className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-court transition-colors"
+            >
+              <Edit size={16} />
+            </button>
+          )}
+          {!isPlaying && (
+            <button 
+              onClick={handleDeleteTeam}
+              className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-court transition-colors"
+            >
+              <Trash size={16} />
+            </button>
+          )}
+        </div>
       </div>
       
       <div className="flex items-center gap-2 mb-3">

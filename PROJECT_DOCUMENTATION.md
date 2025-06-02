@@ -1,135 +1,96 @@
-# Street Queue - 3v3 Basketball Management App
+# Street Queue - Technical Documentation
 
 ## Project Overview
-Street Queue is a web application designed to manage 3v3 street basketball games. It helps organize players, teams, and game rotations in a seamless way.
+Street Queue is a real-time 3v3 basketball game management system built with React, TypeScript, and Supabase.
 
-## Technical Stack
-- **Frontend Framework**: React with TypeScript
-- **Styling**: Tailwind CSS
-- **State Management**: React Context API
-- **Icons**: Lucide React
-- **Animations**: Framer Motion
-- **Notifications**: React Hot Toast
-- **Build Tool**: Vite
+## Database Structure
+
+### Tables
+1. `players`
+   - `id` (UUID, primary key)
+   - `name` (text)
+   - `created_at` (timestamp)
+
+2. `teams`
+   - `id` (UUID, primary key)
+   - `name` (text)
+   - `is_playing` (boolean)
+   - `created_at` (timestamp)
+
+3. `team_players`
+   - `team_id` (UUID, foreign key to teams)
+   - `player_id` (UUID, foreign key to players)
+   - `created_at` (timestamp)
+
+4. `current_game`
+   - `id` (UUID, primary key)
+   - `team_a_id` (UUID, foreign key to teams)
+   - `team_b_id` (UUID, foreign key to teams)
+   - `created_at` (timestamp)
+   - `updated_at` (timestamp)
 
 ## Project Structure
 
-```
-src/
-├── components/           # React components
-│   ├── CurrentGame.tsx  # Displays current match
-│   ├── Header.tsx       # App header
-│   ├── PlayerRegistration.tsx  # Player signup
-│   ├── QueueDisplay.tsx # Shows team queue
-│   ├── TeamDisplay.tsx  # Team card component
-│   ├── TeamEditor.tsx   # Team editing modal
-│   └── UnassignedPlayers.tsx  # Shows available players
-├── contexts/
-│   └── GameContext.tsx  # Global state management
-├── types/
-│   └── index.ts        # TypeScript definitions
-├── utils/
-│   └── gameUtils.ts    # Helper functions
-├── App.tsx             # Main app component
-└── main.tsx           # Entry point
-```
+### Core Components
+- `GameContext.tsx`: Central state management using React Context
+- `Header.tsx`: App header with reset functionality
+- `PlayerRegistration.tsx`: Player registration form
+- `TeamDisplay.tsx`: Team card component
+- `CurrentGame.tsx`: Current game display
+- `QueueDisplay.tsx`: Team queue management
 
-## Core Features
+### State Management
+- Uses React Context for global state
+- Real-time sync with Supabase
+- Automatic team cleanup when empty
+- Persistent game state across sessions
 
-### 1. Player Management
-- Add new players to the roster
-- Remove players from the system
-- Track unassigned players
+### Data Flow
+1. User actions trigger dispatch functions
+2. Context reducer updates local state
+3. Changes sync to Supabase
+4. Real-time subscriptions update all connected clients
 
-### 2. Team Management
-- Create teams manually or automatically
-- Edit team composition
-- Generate automatic team names
-- Maximum 3 players per team
+## Deployment Guide
 
-### 3. Game Management
-- Track current game
-- Manage winner/loser rotation
-- Automatic queue management
-- Next team preview
+### Database Setup
+1. Create a Supabase project at https://supabase.com
+2. Execute the SQL schema provided in the project
+3. Copy the project URL and anon key
+4. Update `src/lib/supabase.ts` with your credentials
 
-## State Management
+### Frontend Deployment
+1. Choose a hosting platform (e.g., Netlify, Vercel)
+2. Connect your repository
+3. Set environment variables:
+   ```
+   VITE_SUPABASE_URL=your_project_url
+   VITE_SUPABASE_ANON_KEY=your_anon_key
+   ```
+4. Deploy using the build command: `npm run build`
 
-The application uses React Context API through `GameContext.tsx` with the following structure:
+### Domain Setup
+1. Purchase a domain from your preferred registrar
+2. Add domain to your hosting platform
+3. Configure DNS settings as per platform instructions
+4. Enable SSL certificate
 
-```typescript
-interface GameState {
-  players: Player[];        // All registered players
-  teams: Team[];           // All formed teams
-  currentGame: {           // Current match
-    teamA: Team | null;
-    teamB: Team | null;
-  };
-  unassignedPlayers: Player[]; // Available players
-}
-```
+## Security Considerations
+- Admin password for reset functionality
+- Row Level Security (RLS) in Supabase
+- Real-time subscription authentication
+- Data validation on both client and server
 
-### Actions
-- ADD_PLAYER: Register new player
-- REMOVE_PLAYER: Remove player from system
-- CREATE_TEAM: Form new team
-- EDIT_TEAM: Modify team composition
-- SET_WINNER: Handle game completion
-- SWAP_PLAYERS: Exchange players between teams
+## Maintenance
+- Regular database backups
+- Monitor Supabase usage
+- Update dependencies
+- Check error logs
+- Test real-time functionality
 
-## Data Persistence
-The application uses localStorage to persist game state between sessions:
-- Saves state on every change
-- Loads state on application startup
-- Handles data recovery on errors
-
-## UI/UX Features
-- Responsive design for all screen sizes
-- Neon-themed styling with basketball court aesthetics
-- Smooth animations using Framer Motion
-- Toast notifications for user feedback
-- Drag-and-drop functionality for team management
-- Modal dialogs for team editing
-
-## Game Flow
-
-1. **Player Registration**
-   - Players sign up through registration form
-   - Added to unassigned players pool
-
-2. **Team Formation**
-   - Manual: Select specific players
-   - Automatic: System forms teams from unassigned players
-   - Teams require 1-3 players
-
-3. **Game Management**
-   - Two teams play at a time
-   - Winner stays on court
-   - Loser moves to end of queue
-   - Next team automatically moves up
-
-## Styling
-
-The application uses a custom Tailwind configuration with:
-- Custom color scheme (neon theme)
-- Basketball court textures
-- Custom animations
-- Responsive breakpoints
-- Custom component classes
-
-## Performance Considerations
-- Optimized re-renders using React.memo
-- Efficient state updates
-- Lazy loading of components
-- Minimized bundle size
-- Local storage for persistence
-
-## Future Enhancements
-1. User authentication
-2. Statistics tracking
-3. Tournament mode
-4. Team history
-5. Player rankings
-6. Social features
-7. Mobile app version
-8. Real-time updates
+## Troubleshooting
+- Check Supabase connection
+- Verify environment variables
+- Monitor browser console
+- Check network requests
+- Validate database permissions

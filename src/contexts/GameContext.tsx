@@ -16,8 +16,8 @@ import {
   handleGameWinner
 } from '../utils/gameUtils';
 
-// Define a constant UUID for the current game record
 const CURRENT_GAME_RECORD_ID = '11111111-1111-1111-1111-111111111111';
+const RESET_PASSWORD = 'admin123'; // In production, this should be in environment variables
 
 const initialState: GameState = {
   players: [],
@@ -32,13 +32,22 @@ const initialState: GameState = {
 const GameContext = createContext<{
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
+  resetGame: (password: string) => Promise<boolean>;
 }>({
   state: initialState,
-  dispatch: () => null
+  dispatch: () => null,
+  resetGame: async () => false
 });
 
 const saveToSupabase = async (state: GameState) => {
   try {
+    // Delete all team_players records first
+    await supabase
+      .from('team_players')
+      .delete()
+      .neq('team_id', 'dummy')
+      .throwOnError();
+
     // Save players
     for (const player of state.players) {
       await supabase
@@ -47,8 +56,9 @@ const saveToSupabase = async (state: GameState) => {
         .throwOnError();
     }
 
-    // Save teams
-    for (const team of state.teams) {
+    // Save teams (only teams with players)
+    const teamsWithPlayers = state.teams.filter(team => team.players.length > 0);
+    for (const team of teamsWithPlayers) {
       await supabase
         .from('teams')
         .upsert({ 
@@ -70,7 +80,15 @@ const saveToSupabase = async (state: GameState) => {
       }
     }
 
-    // Update current game using the constant UUID
+    // Clean up teams without players
+    const teamIds = teamsWithPlayers.map(t => t.id);
+    await supabase
+      .from('teams')
+      .delete()
+      .not('id', 'in', teamIds)
+      .throwOnError();
+
+    // Update current game
     const currentGameData = {
       id: CURRENT_GAME_RECORD_ID,
       team_a_id: state.currentGame.teamA?.id || null,
@@ -84,6 +102,22 @@ const saveToSupabase = async (state: GameState) => {
 
   } catch (error) {
     console.error('Error saving to Supabase:', error);
+  }
+};
+
+const resetSupabase = async () => {
+  try {
+    await supabase.from('team_players').delete().neq('team_id', 'dummy');
+    await supabase.from('teams').delete().neq('id', 'dummy');
+    await supabase.from('players').delete().neq('id', 'dummy');
+    await supabase
+      .from('current_game')
+      .update({ team_a_id: null, team_b_id: null })
+      .eq('id', CURRENT_GAME_RECORD_ID);
+    return true;
+  } catch (error) {
+    console.error('Error resetting Supabase:', error);
+    return false;
   }
 };
 
@@ -264,6 +298,27 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     
+    case ActionType.REMOVE_TEAM: {
+      const { teamId } = action.payload;
+      const teamToRemove = state.teams.find(t => t.id === teamId);
+      
+      if (!teamToRemove) return state;
+      
+      newState = {
+        ...state,
+        teams: state.teams.filter(t => t.id !== teamId),
+        unassignedPlayers: [
+          ...state.unassignedPlayers,
+          ...teamToRemove.players
+        ],
+        currentGame: {
+          teamA: state.currentGame.teamA?.id === teamId ? null : state.currentGame.teamA,
+          teamB: state.currentGame.teamB?.id === teamId ? null : state.currentGame.teamB
+        }
+      };
+      break;
+    }
+    
     case ActionType.SET_WINNER: {
       newState = handleGameWinner(state, action.payload.teamId);
       break;
@@ -278,15 +333,28 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       return state;
   }
 
-  // Save state to Supabase after each action
   saveToSupabase(newState);
   return newState;
 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
-  
-  // Load initial state from Supabase
+
+  const resetGame = async (password: string): Promise<boolean> => {
+    if (password !== RESET_PASSWORD) {
+      return false;
+    }
+
+    const success = await resetSupabase();
+    if (success) {
+      dispatch({ 
+        type: ActionType.INITIALIZE_GAME, 
+        payload: { state: initialState } 
+      });
+    }
+    return success;
+  };
+
   useEffect(() => {
     const loadInitialState = async () => {
       const loadedState = await loadFromSupabase();
@@ -340,7 +408,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
   
   return (
-    <GameContext.Provider value={{ state, dispatch }}>
+    <GameContext.Provider value={{ state, dispatch, resetGame }}>
       {children}
     </GameContext.Provider>
   );
