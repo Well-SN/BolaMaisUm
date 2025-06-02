@@ -16,6 +16,9 @@ import {
   handleGameWinner
 } from '../utils/gameUtils';
 
+// Define a constant UUID for the current game record
+const CURRENT_GAME_RECORD_ID = '11111111-1111-1111-1111-111111111111';
+
 const initialState: GameState = {
   players: [],
   teams: [],
@@ -67,16 +70,16 @@ const saveToSupabase = async (state: GameState) => {
       }
     }
 
-    // Update current game
+    // Update current game using the constant UUID
     const currentGameData = {
-      id: 'current',
+      id: CURRENT_GAME_RECORD_ID,
       team_a_id: state.currentGame.teamA?.id || null,
       team_b_id: state.currentGame.teamB?.id || null
     };
 
     await supabase
       .from('current_game')
-      .upsert(currentGameData)
+      .upsert(currentGameData, { onConflict: 'id' })
       .throwOnError();
 
   } catch (error) {
@@ -114,15 +117,20 @@ const loadFromSupabase = async (): Promise<GameState> => {
         .filter(Boolean) || []
     }));
 
-    // Load current game
+    // Load current game using the constant UUID
     const { data: currentGameData } = await supabase
       .from('current_game')
       .select('*')
-      .single();
+      .eq('id', CURRENT_GAME_RECORD_ID);
+
+    // Handle the case where current game data might not exist yet
+    const currentGameRecord = currentGameData && currentGameData.length > 0 
+      ? currentGameData[0] 
+      : null;
 
     const currentGame = {
-      teamA: teams.find(t => t.id === currentGameData?.team_a_id) || null,
-      teamB: teams.find(t => t.id === currentGameData?.team_b_id) || null
+      teamA: teams.find(t => t.id === currentGameRecord?.team_a_id) || null,
+      teamB: teams.find(t => t.id === currentGameRecord?.team_b_id) || null
     };
 
     // Calculate unassigned players
