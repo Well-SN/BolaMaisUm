@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../lib/supabase';
 import { 
   Player, 
   Team, 
@@ -12,12 +13,9 @@ import {
   createTeam,
   generateTeamName,
   initializeGame,
-  handleGameWinner,
-  saveGameState,
-  loadGameState
+  handleGameWinner
 } from '../utils/gameUtils';
 
-// Initial state
 const initialState: GameState = {
   players: [],
   teams: [],
@@ -28,7 +26,6 @@ const initialState: GameState = {
   unassignedPlayers: []
 };
 
-// Create context
 const GameContext = createContext<{
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
@@ -37,30 +34,141 @@ const GameContext = createContext<{
   dispatch: () => null
 });
 
-// Reducer function
+const saveToSupabase = async (state: GameState) => {
+  try {
+    // Save players
+    for (const player of state.players) {
+      await supabase
+        .from('players')
+        .upsert({ id: player.id, name: player.name })
+        .throwOnError();
+    }
+
+    // Save teams
+    for (const team of state.teams) {
+      await supabase
+        .from('teams')
+        .upsert({ 
+          id: team.id, 
+          name: team.name,
+          is_playing: team.isPlaying || false 
+        })
+        .throwOnError();
+
+      // Save team players relationships
+      for (const player of team.players) {
+        await supabase
+          .from('team_players')
+          .upsert({ 
+            team_id: team.id,
+            player_id: player.id
+          })
+          .throwOnError();
+      }
+    }
+
+    // Update current game
+    const currentGameData = {
+      id: 'current',
+      team_a_id: state.currentGame.teamA?.id || null,
+      team_b_id: state.currentGame.teamB?.id || null
+    };
+
+    await supabase
+      .from('current_game')
+      .upsert(currentGameData)
+      .throwOnError();
+
+  } catch (error) {
+    console.error('Error saving to Supabase:', error);
+  }
+};
+
+const loadFromSupabase = async (): Promise<GameState> => {
+  try {
+    // Load players
+    const { data: playersData } = await supabase
+      .from('players')
+      .select('*');
+
+    const players = playersData || [];
+
+    // Load teams
+    const { data: teamsData } = await supabase
+      .from('teams')
+      .select('*');
+
+    // Load team players
+    const { data: teamPlayersData } = await supabase
+      .from('team_players')
+      .select('team_id, player_id');
+
+    // Build teams with their players
+    const teams = (teamsData || []).map(team => ({
+      id: team.id,
+      name: team.name,
+      isPlaying: team.is_playing,
+      players: teamPlayersData
+        ?.filter(tp => tp.team_id === team.id)
+        .map(tp => players.find(p => p.id === tp.player_id))
+        .filter(Boolean) || []
+    }));
+
+    // Load current game
+    const { data: currentGameData } = await supabase
+      .from('current_game')
+      .select('*')
+      .single();
+
+    const currentGame = {
+      teamA: teams.find(t => t.id === currentGameData?.team_a_id) || null,
+      teamB: teams.find(t => t.id === currentGameData?.team_b_id) || null
+    };
+
+    // Calculate unassigned players
+    const assignedPlayerIds = new Set(
+      teamPlayersData?.map(tp => tp.player_id) || []
+    );
+    
+    const unassignedPlayers = players.filter(
+      player => !assignedPlayerIds.has(player.id)
+    );
+
+    return {
+      players,
+      teams,
+      currentGame,
+      unassignedPlayers
+    };
+  } catch (error) {
+    console.error('Error loading from Supabase:', error);
+    return initialState;
+  }
+};
+
 const gameReducer = (state: GameState, action: GameAction): GameState => {
+  let newState = state;
+
   switch (action.type) {
     case ActionType.ADD_PLAYER: {
       const newPlayer = createPlayer(action.payload.name);
-      const updatedState = {
+      newState = {
         ...state,
         players: [...state.players, newPlayer],
         unassignedPlayers: [...state.unassignedPlayers, newPlayer]
       };
-      saveGameState(updatedState);
-      return updatedState;
+      break;
     }
     
     case ActionType.REMOVE_PLAYER: {
       const { playerId } = action.payload;
       
-      // Remove player from all teams
       const updatedTeams = state.teams.map(team => ({
         ...team,
         players: team.players.filter(p => p.id !== playerId)
       })).filter(team => team.players.length > 0);
       
-      const updatedState = {
+      newState = {
         ...state,
         players: state.players.filter(p => p.id !== playerId),
         teams: updatedTeams,
@@ -74,15 +182,13 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             : state.currentGame.teamB
         }
       };
-      saveGameState(updatedState);
-      return updatedState;
+      break;
     }
     
     case ActionType.CREATE_TEAM: {
       const { playerIds, teamName } = action.payload;
       const teamPlayers = state.players.filter(p => playerIds.includes(p.id));
       
-      // Don't create empty teams
       if (teamPlayers.length === 0) return state;
       
       const newTeam = createTeam(
@@ -90,7 +196,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         teamPlayers
       );
       
-      const updatedState = {
+      newState = {
         ...state,
         teams: [...state.teams, newTeam],
         unassignedPlayers: state.unassignedPlayers.filter(
@@ -98,21 +204,16 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         )
       };
       
-      // If we don't have a current game yet, initialize one
-      const finalState = 
-        !state.currentGame.teamA || !state.currentGame.teamB
-          ? initializeGame(updatedState)
-          : updatedState;
-      
-      saveGameState(finalState);
-      return finalState;
+      if (!state.currentGame.teamA || !state.currentGame.teamB) {
+        newState = initializeGame(newState);
+      }
+      break;
     }
     
     case ActionType.EDIT_TEAM: {
       const { teamId, playerIds } = action.payload;
       const teamPlayers = state.players.filter(p => playerIds.includes(p.id));
       
-      // Find players being removed from the team
       const targetTeam = state.teams.find(t => t.id === teamId);
       if (!targetTeam) return state;
       
@@ -120,12 +221,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         p => !playerIds.includes(p.id)
       );
       
-      // Find new players being added to the team
       const newPlayers = teamPlayers.filter(
         p => !targetTeam.players.some(tp => tp.id === p.id)
       );
       
-      // Update the teams
       const updatedTeams = state.teams.map(team => {
         if (team.id === teamId) {
           return {
@@ -136,18 +235,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         return team;
       });
       
-      // Update the unassigned players
-      const updatedUnassignedPlayers = [
-        ...state.unassignedPlayers.filter(
-          p => !newPlayers.some(np => np.id === p.id)
-        ),
-        ...removedPlayers
-      ];
-      
-      const updatedState = {
+      newState = {
         ...state,
         teams: updatedTeams,
-        unassignedPlayers: updatedUnassignedPlayers,
+        unassignedPlayers: [
+          ...state.unassignedPlayers.filter(
+            p => !newPlayers.some(np => np.id === p.id)
+          ),
+          ...removedPlayers
+        ],
         currentGame: {
           teamA: state.currentGame.teamA?.id === teamId
             ? { ...state.currentGame.teamA, players: teamPlayers }
@@ -157,116 +253,82 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             : state.currentGame.teamB
         }
       };
-      saveGameState(updatedState);
-      return updatedState;
+      break;
     }
     
     case ActionType.SET_WINNER: {
-      const { teamId } = action.payload;
-      const updatedState = handleGameWinner(state, teamId);
-      saveGameState(updatedState);
-      return updatedState;
-    }
-    
-    case ActionType.SWAP_PLAYERS: {
-      const { sourcePlayerId, targetPlayerId } = action.payload;
-      
-      // Find the players
-      const sourcePlayer = state.players.find(p => p.id === sourcePlayerId);
-      const targetPlayer = state.players.find(p => p.id === targetPlayerId);
-      
-      if (!sourcePlayer || !targetPlayer) return state;
-      
-      // Find the teams containing these players
-      const sourceTeam = state.teams.find(team => 
-        team.players.some(p => p.id === sourcePlayerId)
-      );
-      
-      const targetTeam = state.teams.find(team => 
-        team.players.some(p => p.id === targetPlayerId)
-      );
-      
-      // If either player is not in a team, return
-      if (!sourceTeam || !targetTeam) return state;
-      
-      // Update the teams
-      const updatedTeams = state.teams.map(team => {
-        if (team.id === sourceTeam.id) {
-          return {
-            ...team,
-            players: team.players.map(p => 
-              p.id === sourcePlayerId ? targetPlayer : p
-            )
-          };
-        } else if (team.id === targetTeam.id) {
-          return {
-            ...team,
-            players: team.players.map(p => 
-              p.id === targetPlayerId ? sourcePlayer : p
-            )
-          };
-        }
-        return team;
-      });
-      
-      const updatedState = {
-        ...state,
-        teams: updatedTeams,
-        currentGame: {
-          teamA: state.currentGame.teamA
-            ? {
-                ...state.currentGame.teamA,
-                players: state.currentGame.teamA.players.map(p => {
-                  if (p.id === sourcePlayerId && state.currentGame.teamA?.id === sourceTeam.id) {
-                    return targetPlayer;
-                  } else if (p.id === targetPlayerId && state.currentGame.teamA?.id === targetTeam.id) {
-                    return sourcePlayer;
-                  }
-                  return p;
-                })
-              }
-            : null,
-          teamB: state.currentGame.teamB
-            ? {
-                ...state.currentGame.teamB,
-                players: state.currentGame.teamB.players.map(p => {
-                  if (p.id === sourcePlayerId && state.currentGame.teamB?.id === sourceTeam.id) {
-                    return targetPlayer;
-                  } else if (p.id === targetPlayerId && state.currentGame.teamB?.id === targetTeam.id) {
-                    return sourcePlayer;
-                  }
-                  return p;
-                })
-              }
-            : null
-        }
-      };
-      saveGameState(updatedState);
-      return updatedState;
+      newState = handleGameWinner(state, action.payload.teamId);
+      break;
     }
     
     case ActionType.INITIALIZE_GAME: {
-      return action.payload.state;
+      newState = action.payload.state;
+      break;
     }
     
     default:
       return state;
   }
+
+  // Save state to Supabase after each action
+  saveToSupabase(newState);
+  return newState;
 };
 
-// Provider component
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   
-  // Load saved state on initial render
+  // Load initial state from Supabase
   useEffect(() => {
-    const savedState = loadGameState();
-    if (savedState) {
+    const loadInitialState = async () => {
+      const loadedState = await loadFromSupabase();
       dispatch({ 
         type: ActionType.INITIALIZE_GAME, 
-        payload: { state: savedState } 
+        payload: { state: loadedState } 
       });
-    }
+    };
+
+    loadInitialState();
+
+    // Subscribe to realtime changes
+    const playersSubscription = supabase
+      .channel('players-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, async () => {
+        const loadedState = await loadFromSupabase();
+        dispatch({ 
+          type: ActionType.INITIALIZE_GAME, 
+          payload: { state: loadedState } 
+        });
+      })
+      .subscribe();
+
+    const teamsSubscription = supabase
+      .channel('teams-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, async () => {
+        const loadedState = await loadFromSupabase();
+        dispatch({ 
+          type: ActionType.INITIALIZE_GAME, 
+          payload: { state: loadedState } 
+        });
+      })
+      .subscribe();
+
+    const currentGameSubscription = supabase
+      .channel('current-game-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'current_game' }, async () => {
+        const loadedState = await loadFromSupabase();
+        dispatch({ 
+          type: ActionType.INITIALIZE_GAME, 
+          payload: { state: loadedState } 
+        });
+      })
+      .subscribe();
+
+    return () => {
+      playersSubscription.unsubscribe();
+      teamsSubscription.unsubscribe();
+      currentGameSubscription.unsubscribe();
+    };
   }, []);
   
   return (
@@ -276,5 +338,4 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Custom hook to use the game context
 export const useGame = () => useContext(GameContext);
