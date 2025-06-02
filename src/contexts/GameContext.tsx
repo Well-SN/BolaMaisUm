@@ -45,7 +45,6 @@ const saveToSupabase = async (state: GameState) => {
     await supabase
       .from('team_players')
       .delete()
-      .neq('team_id', 'dummy')
       .throwOnError();
 
     // Save players
@@ -107,9 +106,9 @@ const saveToSupabase = async (state: GameState) => {
 
 const resetSupabase = async () => {
   try {
-    await supabase.from('team_players').delete().neq('team_id', 'dummy');
-    await supabase.from('teams').delete().neq('id', 'dummy');
-    await supabase.from('players').delete().neq('id', 'dummy');
+    await supabase.from('team_players').delete();
+    await supabase.from('teams').delete();
+    await supabase.from('players').delete();
     await supabase
       .from('current_game')
       .update({ team_a_id: null, team_b_id: null })
