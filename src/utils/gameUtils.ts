@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { Player, Team, GameState } from '../types';
 
@@ -86,33 +87,54 @@ export const initializeGame = (state: GameState): GameState => {
 };
 
 export const handleGameWinner = (state: GameState, winnerTeamId: string): GameState => {
-  const loserTeam = 
-    state.currentGame.teamA?.id === winnerTeamId 
-      ? state.currentGame.teamB 
-      : state.currentGame.teamA;
+  // Verify the current game exists
+  if (!state.currentGame.teamA || !state.currentGame.teamB) {
+    return state;
+  }
+
+  // Determine winner and loser
+  const currentTeamA = state.currentGame.teamA;
+  const currentTeamB = state.currentGame.teamB;
   
-  const winnerTeam = state.teams.find(team => team.id === winnerTeamId);
+  const winner = winnerTeamId === currentTeamA.id ? currentTeamA : currentTeamB;
+  const loser = winnerTeamId === currentTeamA.id ? currentTeamB : currentTeamA;
   
-  if (!winnerTeam || !loserTeam) return state;
-  
-  // Find the next available team
-  const nextTeam = state.teams.find(team => 
+  // Get all available teams in queue order (not currently playing)
+  const queueTeams = state.teams.filter(team => 
     !team.isPlaying && 
-    team.id !== winnerTeamId && 
-    team.id !== loserTeam.id
+    team.id !== currentTeamA.id && 
+    team.id !== currentTeamB.id
   );
   
-  const updatedTeams = state.teams.map(team => ({
-    ...team,
-    isPlaying: team.id === winnerTeamId || team.id === nextTeam?.id
-  }));
+  // Check if we have a next team available
+  const hasNextTeam = queueTeams.length > 0;
+  const nextTeam = hasNextTeam ? queueTeams[0] : null;
+  
+  // Create new teams array with updated positions
+  let updatedTeams = state.teams.map(team => {
+    if (team.id === winner.id) {
+      return { ...team, isPlaying: true };
+    } else if (team.id === loser.id) {
+      return { ...team, isPlaying: false };
+    } else if (nextTeam && team.id === nextTeam.id) {
+      return { ...team, isPlaying: true };
+    }
+    return team;
+  });
+  
+  // Add loser to the end of the queue
+  updatedTeams = updatedTeams.filter(team => team.id !== loser.id);
+  updatedTeams.push({ ...loser, isPlaying: false });
+  
+  // Update current game with winner and next team (if available)
+  const newCurrentGame = {
+    teamA: { ...winner, isPlaying: true },
+    teamB: nextTeam ? { ...nextTeam, isPlaying: true } : null
+  };
   
   return {
     ...state,
     teams: updatedTeams,
-    currentGame: {
-      teamA: { ...winnerTeam, isPlaying: true },
-      teamB: nextTeam || null
-    }
+    currentGame: newCurrentGame
   };
 };

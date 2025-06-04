@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -16,18 +17,20 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      onClick={onClose}
     >
       <motion.div 
-        className="w-full max-w-2xl bg-gradient-to-br from-neon-blue/20 to-white/5 backdrop-blur border border-white/10 rounded-lg shadow-xl"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-neon-blue/20 to-white/5 backdrop-blur border border-white/10 rounded-lg shadow-xl"
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-graffiti text-neon-blue">REGRAS DO 3x3</h2>
+        <div className="p-4 sm:p-6">
+          <div className="flex justify-between items-center mb-6 sticky top-0 bg-gradient-to-br from-neon-blue/20 to-white/5 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 border-b border-white/10">
+            <h2 className="text-xl sm:text-2xl font-graffiti text-neon-blue">REGRAS DO 3x3</h2>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
             >
               <X size={24} />
             </button>
@@ -36,7 +39,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
           <div className="space-y-6 text-gray-100">
             <section>
               <h3 className="text-lg font-bold text-neon-blue mb-2">🏀 FORMATO DO JOGO</h3>
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
                 <li>Cada equipe tem exatamente 3 jogadores</li>
                 <li>Jogo em meia quadra</li>
                 <li>Uma cesta apenas</li>
@@ -45,7 +48,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
 
             <section>
               <h3 className="text-lg font-bold text-neon-blue mb-2">⚡ SISTEMA DE FILA</h3>
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
                 <li>Equipe vencedora permanece na quadra</li>
                 <li>Equipe perdedora vai para o final da fila</li>
                 <li>Próxima equipe da fila entra para jogar</li>
@@ -55,7 +58,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
 
             <section>
               <h3 className="text-lg font-bold text-neon-blue mb-2">🎯 PONTUAÇÃO</h3>
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
                 <li>Cestas normais: 1 ponto</li>
                 <li>Cestas de 3 pontos: 2 pontos</li>
                 <li>Primeiro a fazer 21 pontos vence</li>
@@ -65,7 +68,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
 
             <section>
               <h3 className="text-lg font-bold text-neon-blue mb-2">🔄 POSSE DE BOLA</h3>
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
                 <li>Após cesta: bola para o adversário</li>
                 <li>Após rebote defensivo: levar a bola além da linha de 3</li>
                 <li>Início do jogo: decidido no "check ball"</li>
@@ -74,7 +77,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
 
             <section>
               <h3 className="text-lg font-bold text-neon-blue mb-2">⚠️ FALTAS</h3>
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
                 <li>6 faltas coletivas = adversário ganha posse</li>
                 <li>Falta em arremesso = 1 ou 2 lances livres</li>
                 <li>Jogo limpo e respeitoso sempre!</li>

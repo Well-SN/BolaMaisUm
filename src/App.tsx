@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import { useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { GameProvider } from './contexts/GameContext';
 import Header from './components/Header';

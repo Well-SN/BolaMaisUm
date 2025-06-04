@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -57,7 +58,6 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
   };
   
   const isPlayerSelected = (playerId: string) => selectedPlayers.includes(playerId);
-  const isPlayerInTeam = (playerId: string) => team.players.some(p => p.id === playerId);
   
   // Get players not in the team
   const availablePlayers = state.unassignedPlayers.filter(
@@ -66,19 +66,19 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
   
   return (
     <motion.div 
-      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 overflow-y-auto"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.div 
-        className="w-full max-w-md bg-court-light border-2 border-gray-700 rounded-lg p-5"
+        className="w-full max-w-md bg-court-light border-2 border-gray-700 rounded-lg p-4 sm:p-5 my-4"
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-graffiti neon-text">Edit Team: {team.name}</h2>
+          <h2 className="text-lg sm:text-xl font-graffiti neon-text truncate pr-2">Edit Team: {team.name}</h2>
           <button 
             onClick={onClose}
             className="text-gray-400 hover:text-white p-1"
@@ -88,37 +88,37 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
         </div>
         
         <div className="mb-4">
-          <h3 className="text-lg mb-2 font-bold">Current Players</h3>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
+          <h3 className="text-base sm:text-lg mb-2 font-bold">Current Players</h3>
+          <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
             {team.players.map((player: Player) => (
               <div 
                 key={player.id}
                 onClick={() => togglePlayer(player.id)}
-                className={`player-item cursor-pointer ${
+                className={`player-item cursor-pointer flex items-center p-2 rounded ${
                   isPlayerSelected(player.id) ? 'border border-neon-orange' : ''
                 }`}
               >
-                <UserMinus size={16} className="text-neon-orange" />
-                <span>{player.name}</span>
+                <UserMinus size={16} className="text-neon-orange mr-2 flex-shrink-0" />
+                <span className="truncate">{player.name}</span>
               </div>
             ))}
           </div>
         </div>
         
         <div className="mb-4">
-          <h3 className="text-lg mb-2 font-bold">Available Players</h3>
+          <h3 className="text-base sm:text-lg mb-2 font-bold">Available Players</h3>
           {availablePlayers.length > 0 ? (
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
               {availablePlayers.map((player: Player) => (
                 <div 
                   key={player.id}
                   onClick={() => togglePlayer(player.id)}
-                  className={`player-item cursor-pointer ${
+                  className={`player-item cursor-pointer flex items-center p-2 rounded ${
                     isPlayerSelected(player.id) ? 'border border-neon-blue' : ''
                   }`}
                 >
-                  <UserPlus size={16} className="text-neon-blue" />
-                  <span>{player.name}</span>
+                  <UserPlus size={16} className="text-neon-blue mr-2 flex-shrink-0" />
+                  <span className="truncate">{player.name}</span>
                 </div>
               ))}
             </div>
@@ -127,20 +127,20 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
           )}
         </div>
         
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-300">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+          <span className="text-sm text-gray-300 mb-2 sm:mb-0">
             {selectedPlayers.length}/3 players selected
           </span>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button 
               onClick={onClose}
-              className="btn btn-outline"
+              className="btn btn-outline w-full sm:w-auto"
             >
               Cancel
             </button>
             <button 
               onClick={handleSaveTeam}
-              className="btn btn-primary flex items-center gap-2"
+              className="btn btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <Save size={16} /> Save
             </button>

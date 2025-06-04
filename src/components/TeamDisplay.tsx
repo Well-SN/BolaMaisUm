@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Users, UserMinus, Edit, Trash } from 'lucide-react';
-import { Team, Player } from '../types';
+import { Team, Player, ActionType } from '../types';
 import { useGame } from '../contexts/GameContext';
 import toast from 'react-hot-toast';
 
@@ -30,7 +31,7 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
       type: ActionType.REMOVE_TEAM,
       payload: { teamId: team.id }
     });
-    toast.success('Time Deletado');
+    toast.success('Time e jogadores removidos');
   };
 
   const cardVariants = {
@@ -45,7 +46,6 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
         : 'none'
     }
   };
-
 
   return (
     <motion.div
@@ -93,6 +93,7 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
             <button 
               onClick={handleDeleteTeam}
               className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-court transition-colors"
+              title="Deletar time e jogadores"
             >
               <Trash size={16} />
             </button>
@@ -114,7 +115,7 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
             className="flex items-center gap-2 bg-court p-2 rounded"
           >
             <UserMinus size={14} className="text-gray-400" />
-            <span>{player.name}</span>
+            <span className="truncate">{player.name}</span>
           </div>
         ))}
       </div>

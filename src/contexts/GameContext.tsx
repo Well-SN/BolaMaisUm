@@ -1,9 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react'; // Importe useRef
-import { v4 as uuidv4 } from 'uuid';
+
+import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
-    Player, 
-    Team, 
     GameState, 
     GameAction, 
     ActionType 
@@ -17,7 +15,7 @@ import {
 } from '../utils/gameUtils';
 
 const CURRENT_GAME_RECORD_ID = 'c0a1b2c3-d4e5-f6a7-b8c9-d0e1f2a3b4c5';
-const RESET_PASSWORD = 'admin123'; // Em produção, isto deve estar em variáveis de ambiente
+const RESET_PASSWORD = 'admin123';
 
 const initialState: GameState = {
     players: [],
@@ -39,42 +37,11 @@ const GameContext = createContext<{
     resetGame: async () => false
 });
 
-// Mantenha a função saveToSupabase como está, fora do reducer.
 const saveToSupabase = async (state: GameState) => {
-    // ... (sua implementação atual de saveToSupabase)
     try {
-        // Get all existing team_player records
-        const { data: existingTeamPlayers } = await supabase
-          .from('team_players')
-          .select('team_id, player_id');
-    
-        // Delete team_player records that are no longer valid
-        if (existingTeamPlayers && existingTeamPlayers.length > 0) {
-          const validTeamPlayerPairs = state.teams.flatMap(team => 
-            team.players.map(player => ({
-              team_id: team.id,
-              player_id: player.id
-            }))
-          );
-    
-          const recordsToDelete = existingTeamPlayers.filter(record => 
-            !validTeamPlayerPairs.some(valid => 
-              valid.team_id === record.team_id && 
-              valid.player_id === record.player_id
-            )
-          );
-    
-          if (recordsToDelete.length > 0) {
-            await supabase
-              .from('team_players')
-              .delete()
-              .in('team_id', recordsToDelete.map(r => r.team_id))
-              .in('player_id', recordsToDelete.map(r => r.player_id))
-              .throwOnError();
-          }
-        }
-    
-        // Save players
+        console.log('Saving state to Supabase:', state);
+        
+        // Save players first
         for (const player of state.players) {
           await supabase
             .from('players')
@@ -82,7 +49,21 @@ const saveToSupabase = async (state: GameState) => {
             .throwOnError();
         }
     
-        // Get all existing teams
+        // Get all existing team_player records to clean up
+        const { data: existingTeamPlayers } = await supabase
+          .from('team_players')
+          .select('team_id, player_id');
+    
+        // Delete all existing team_player records
+        if (existingTeamPlayers && existingTeamPlayers.length > 0) {
+          await supabase
+            .from('team_players')
+            .delete()
+            .in('team_id', existingTeamPlayers.map(r => r.team_id))
+            .throwOnError();
+        }
+    
+        // Get all existing teams to clean up
         const { data: existingTeams } = await supabase
           .from('teams')
           .select('id');
@@ -103,9 +84,8 @@ const saveToSupabase = async (state: GameState) => {
           }
         }
     
-        // Save teams (only teams with players)
-        const teamsWithPlayers = state.teams.filter(team => team.players.length > 0);
-        for (const team of teamsWithPlayers) {
+        // Save teams with players
+        for (const team of state.teams) {
           await supabase
             .from('teams')
             .upsert({ 
@@ -139,58 +119,84 @@ const saveToSupabase = async (state: GameState) => {
           .upsert(currentGameData)
           .throwOnError();
     
+        console.log('State saved successfully to Supabase');
       } catch (error) {
         console.error('Error saving to Supabase:', error);
       }
 };
 
-const resetSupabase = async () => {
-    // ... (sua implementação atual de resetSupabase)
+const deletePlayerFromSupabase = async (playerId: string) => {
     try {
-        // Get all records to delete
-        const { data: teamPlayers } = await supabase
-          .from('team_players')
-          .select('team_id, player_id');
-        
-        const { data: teams } = await supabase
-          .from('teams')
-          .select('id');
-        
-        const { data: players } = await supabase
-          .from('players')
-          .select('id');
-    
-        // Delete records with specific WHERE clauses
-        if (teamPlayers && teamPlayers.length > 0) {
-          await supabase
+        // Remove player from all teams first
+        await supabase
             .from('team_players')
             .delete()
-            .in('team_id', teamPlayers.map(tp => tp.team_id))
+            .eq('player_id', playerId)
             .throwOnError();
-        }
-    
-        if (teams && teams.length > 0) {
-          await supabase
-            .from('teams')
-            .delete()
-            .in('id', teams.map(t => t.id))
-            .throwOnError();
-        }
-    
-        if (players && players.length > 0) {
-          await supabase
+        
+        // Then delete the player
+        await supabase
             .from('players')
             .delete()
-            .in('id', players.map(p => p.id))
+            .eq('id', playerId)
             .throwOnError();
-        }
+        
+        console.log('Player deleted from Supabase:', playerId);
+    } catch (error) {
+        console.error('Error deleting player from Supabase:', error);
+    }
+};
+
+const deleteTeamFromSupabase = async (teamId: string) => {
+    try {
+        // Remove team-player relationships first
+        await supabase
+            .from('team_players')
+            .delete()
+            .eq('team_id', teamId)
+            .throwOnError();
+        
+        // Then delete the team
+        await supabase
+            .from('teams')
+            .delete()
+            .eq('id', teamId)
+            .throwOnError();
+        
+        console.log('Team deleted from Supabase:', teamId);
+    } catch (error) {
+        console.error('Error deleting team from Supabase:', error);
+    }
+};
+
+const resetSupabase = async () => {
+    try {
+        // Delete all team_player records
+        await supabase
+          .from('team_players')
+          .delete()
+          .neq('team_id', 'non-existent-id'); // Delete all records
+        
+        // Delete all teams
+        await supabase
+          .from('teams')
+          .delete()
+          .neq('id', 'non-existent-id'); // Delete all records
+        
+        // Delete all players
+        await supabase
+          .from('players')
+          .delete()
+          .neq('id', 'non-existent-id'); // Delete all records
     
+        // Reset current game
         await supabase
           .from('current_game')
           .update({ team_a_id: null, team_b_id: null })
           .eq('id', CURRENT_GAME_RECORD_ID)
           .throwOnError();
     
+        console.log('Supabase reset successfully');
         return true;
       } catch (error) {
         console.error('Error resetting Supabase:', error);
@@ -199,47 +205,72 @@ const resetSupabase = async () => {
 };
 
 const loadFromSupabase = async (): Promise<GameState> => {
-    // ... (sua implementação atual de loadFromSupabase)
     try {
+        console.log('Loading initial state from Supabase...');
+        
         // Load players
-        const { data: playersData } = await supabase
+        const { data: playersData, error: playersError } = await supabase
           .from('players')
           .select('*');
     
+        if (playersError) {
+          console.error('Error loading players:', playersError);
+          return initialState;
+        }
+    
         const players = playersData || [];
+        console.log('Loaded players:', players);
     
         // Load teams
-        const { data: teamsData } = await supabase
+        const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
           .select('*');
     
+        if (teamsError) {
+          console.error('Error loading teams:', teamsError);
+          return initialState;
+        }
+    
         // Load team players
-        const { data: teamPlayersData } = await supabase
+        const { data: teamPlayersData, error: teamPlayersError } = await supabase
           .from('team_players')
           .select('team_id, player_id');
+    
+        if (teamPlayersError) {
+          console.error('Error loading team players:', teamPlayersError);
+          return initialState;
+        }
     
         // Build teams with their players
         const teams = (teamsData || []).map(team => ({
           id: team.id,
           name: team.name,
-          isPlaying: team.is_playing,
+          isPlaying: team.is_playing || false,
           players: teamPlayersData
             ?.filter(tp => tp.team_id === team.id)
             .map(tp => players.find(p => p.id === tp.player_id))
             .filter(Boolean) || []
         }));
     
-        // Load current game using the UUID
-        const { data: currentGameData } = await supabase
+        console.log('Built teams:', teams);
+    
+        // Load current game
+        const { data: currentGameData, error: currentGameError } = await supabase
           .from('current_game')
           .select('*')
           .eq('id', CURRENT_GAME_RECORD_ID)
           .single();
     
+        if (currentGameError) {
+          console.error('Error loading current game:', currentGameError);
+        }
+    
         const currentGame = {
           teamA: teams.find(t => t.id === currentGameData?.team_a_id) || null,
           teamB: teams.find(t => t.id === currentGameData?.team_b_id) || null
         };
+    
+        console.log('Current game:', currentGame);
     
         // Calculate unassigned players
         const assignedPlayerIds = new Set(
@@ -250,29 +281,30 @@ const loadFromSupabase = async (): Promise<GameState> => {
           player => !assignedPlayerIds.has(player.id)
         );
     
-        return {
+        console.log('Unassigned players:', unassignedPlayers);
+    
+        const loadedState = {
           players,
           teams,
           currentGame,
           unassignedPlayers
         };
+        
+        console.log('Final loaded state:', loadedState);
+        return loadedState;
       } catch (error) {
         console.error('Error loading from Supabase:', error);
         return initialState;
       }
 };
 
-// **Remova a chamada saveToSupabase daqui!**
 const gameReducer = (state: GameState, action: GameAction): GameState => {
     let newState = state;
 
     switch (action.type) {
         case ActionType.ADD_PLAYER: {
-            // Antes de criar um novo player, verifique se já existe um player com o mesmo nome
-            // Isso evitará IDs duplicados para o mesmo nome se a inserção for mais rápida que a sincronização
             const existingPlayer = state.players.find(p => p.name === action.payload.name.trim());
             if (existingPlayer) {
-                // Se o player já existe, retorne o estado atual sem alterações ou com uma mensagem de erro
                 console.warn(`Player with name "${action.payload.name.trim()}" already exists.`);
                 return state; 
             }
@@ -286,6 +318,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         }
         case ActionType.REMOVE_PLAYER: {
             const { playerId } = action.payload;
+            
+            // Delete from Supabase immediately
+            deletePlayerFromSupabase(playerId);
             
             const updatedTeams = state.teams.map(team => ({
                 ...team,
@@ -383,6 +418,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             
             if (!teamToRemove) return state;
             
+            // Delete from Supabase immediately
+            deleteTeamFromSupabase(teamId);
+            
+            // Adicionar os jogadores do time de volta para os não atribuídos
             newState = {
                 ...state,
                 teams: state.teams.filter(t => t.id !== teamId),
@@ -395,6 +434,11 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
                     teamB: state.currentGame.teamB?.id === teamId ? null : state.currentGame.teamB
                 }
             };
+            
+            // Se o jogo atual foi afetado, inicializar novo jogo se possível
+            if (state.currentGame.teamA?.id === teamId || state.currentGame.teamB?.id === teamId) {
+                newState = initializeGame(newState);
+            }
             break;
         }
         case ActionType.SET_WINNER: {
@@ -408,44 +452,50 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         default:
             return state;
     }
-    return newState; // Apenas retorne o novo estado
+    return newState;
 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(gameReducer, initialState);
-    // Use um ref para garantir que o saveToSupabase não seja chamado no montagem inicial
     const isInitialMount = useRef(true); 
+    const isLoadingInitialState = useRef(false);
 
-    // Este useEffect é responsável por salvar o estado no Supabase sempre que ele muda
     useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return; // Não salve no montagem inicial
+        if (isInitialMount.current || isLoadingInitialState.current) {
+            return;
         }
-        // console.log("State changed, saving to Supabase:", state); // Para depuração
+        console.log('Saving state to Supabase:', state);
         saveToSupabase(state);
-    }, [state]); // Dispara sempre que o estado muda
+    }, [state]);
 
     useEffect(() => {
         const loadInitialState = async () => {
+            if (isLoadingInitialState.current) return;
+            
+            isLoadingInitialState.current = true;
+            console.log('Loading initial state from Supabase...');
             const loadedState = await loadFromSupabase();
+            console.log('Loaded state:', loadedState);
+            
             dispatch({ 
                 type: ActionType.INITIALIZE_GAME, 
                 payload: { state: loadedState } 
             });
+            
+            isInitialMount.current = false;
+            isLoadingInitialState.current = false;
         };
 
         loadInitialState();
 
-        // Subscribe to realtime changes
-        // Use 'game-state-updates' para um canal único que escuta todas as tabelas relevantes
-        // Isso ajuda a evitar múltiplos "dispatch" para a mesma mudança
         const channel = supabase
             .channel('game-state-updates')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'players' },
                 async () => {
+                    if (isLoadingInitialState.current) return;
+                    console.log('Players table changed, reloading state...');
                     const loadedState = await loadFromSupabase();
                     dispatch({ 
                         type: ActionType.INITIALIZE_GAME, 
@@ -457,6 +507,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'teams' },
                 async () => {
+                    if (isLoadingInitialState.current) return;
+                    console.log('Teams table changed, reloading state...');
                     const loadedState = await loadFromSupabase();
                     dispatch({ 
                         type: ActionType.INITIALIZE_GAME, 
@@ -466,8 +518,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             )
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'team_players' }, // Adicione esta tabela também
+                { event: '*', schema: 'public', table: 'team_players' },
                 async () => {
+                    if (isLoadingInitialState.current) return;
+                    console.log('Team players table changed, reloading state...');
                     const loadedState = await loadFromSupabase();
                     dispatch({ 
                         type: ActionType.INITIALIZE_GAME, 
@@ -479,6 +533,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'current_game' },
                 async () => {
+                    if (isLoadingInitialState.current) return;
+                    console.log('Current game table changed, reloading state...');
                     const loadedState = await loadFromSupabase();
                     dispatch({ 
                         type: ActionType.INITIALIZE_GAME, 
@@ -491,7 +547,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => {
             channel.unsubscribe();
         };
-    }, []); // Array de dependências vazio para rodar apenas na montagem e desmontagem
+    }, []);
     
     const resetGame = async (password: string): Promise<boolean> => {
         if (password !== RESET_PASSWORD) {
