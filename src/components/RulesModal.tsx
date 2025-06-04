@@ -37,50 +37,63 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="space-y-6 text-gray-100">
-            <section>
-              <h3 className="text-lg font-bold text-neon-blue mb-2">🏀 FORMATO DO JOGO</h3>
+             <section>
+              <h3 className="text-lg font-bold text-neon-blue mb-2">⏰ Localização e Horário </h3>
               <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
-                <li>Cada equipe tem exatamente 3 jogadores</li>
-                <li>Jogo em meia quadra</li>
-                <li>Uma cesta apenas</li>
+                <li>Domingos: 8:30 às 11h30</li>
+                <li>Quartas: 20:00 às 22:30</li>
+                <li>Local: Endereço: R. Francisco Portilho de Melo, 40 - Jardim Virginia, São Paulo - SP</li>
+                <li>Observação: Levem água 🚰.</li>
               </ul>
             </section>
-
-            <section>
-              <h3 className="text-lg font-bold text-neon-blue mb-2">⚡ SISTEMA DE FILA</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
-                <li>Equipe vencedora permanece na quadra</li>
-                <li>Equipe perdedora vai para o final da fila</li>
-                <li>Próxima equipe da fila entra para jogar</li>
-                <li>Sistema de rotação contínua</li>
-              </ul>
-            </section>
-
             <section>
               <h3 className="text-lg font-bold text-neon-blue mb-2">🎯 PONTUAÇÃO</h3>
               <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
                 <li>Cestas normais: 1 ponto</li>
                 <li>Cestas de 3 pontos: 2 pontos</li>
-                <li>Primeiro a fazer 21 pontos vence</li>
-                <li>Ou quem estiver na frente aos 10 minutos</li>
+                <li>O jogo vai até 11 pontos.</li>
               </ul>
             </section>
-
             <section>
-              <h3 className="text-lg font-bold text-neon-blue mb-2">🔄 POSSE DE BOLA</h3>
+              <h3 className="text-lg font-bold text-neon-blue mb-2">📜 Regras do jogo </h3>
               <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
-                <li>Após cesta: bola para o adversário</li>
-                <li>Após rebote defensivo: levar a bola além da linha de 3</li>
-                <li>Início do jogo: decidido no "check ball"</li>
+                <li>Caso haja 3 times ou menos, o jogo dura 10 minutos.</li>
+                <li>Caso haja mais de 3 times, o jogo dura 8 minutos.</li>
               </ul>
             </section>
-
             <section>
-              <h3 className="text-lg font-bold text-neon-blue mb-2">⚠️ FALTAS</h3>
+              <h3 className="text-lg font-bold text-neon-blue mb-2">🏀 FORMATO DO JOGO</h3>
               <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
-                <li>6 faltas coletivas = adversário ganha posse</li>
-                <li>Falta em arremesso = 1 ou 2 lances livres</li>
-                <li>Jogo limpo e respeitoso sempre!</li>
+                <li>Laterais, fundo e faltas: Checkball (bola volta para o meio após essas situações).</li>
+                <li>Cesta = Saída livre: após fazer uma cesta, o time que fez pode sair livre, sem reinício de jogo.</li>
+                <li>Faltas e cesta não contabilizam pontos. A jogada reinicia com checkball.</li>
+                <li>Toda troca de posse deve ser feita saindo da linha de 3 pontos.</li>
+              </ul>
+            </section>
+            <section>
+              <h3 className="text-lg font-bold text-neon-blue mb-2">🔄 SISTEMA DE FILA</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
+               <li>Equipe vencedora permanece na quadra</li>
+                <li>Equipe perdedora vai para o final da fila</li>
+                <li>Próxima equipe da fila entra para jogar</li>
+                <li>Sistema de rotação contínua</li>
+                <li>Quem chegar primeiro começa jogando, e os times serão formados por ordem de chegada ni sistema.</li>
+                <li>Quem chegar depois, vai esperar os times já formados jogarem até que todos da lista tenham jogado.</li>            
+              </ul>
+            </section>
+            <section>
+              <h3 className="text-lg font-bold text-neon-blue mb-2">🔄 Montar o time</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
+                <li>Quem quiser montar seu time, precisa esperar todos jogarem uma vez antes de escolher jogadores.</li>
+                <li>Quando for sua vez de montar, respeite a ordem de chegada e escolha dentro da lista de quem ainda não jogou.</li>
+              </ul>
+            </section>
+            <section>
+              <h3 className="text-lg font-bold text-neon-blue mb-2"> ❗IMPORTANTE </h3>
+              <ul className="list-disc list-inside space-y-1 text-sm sm:text-base">
+                <li>Proibido jogar descalço – sem exceções.</li>
+                <li>Se houver empate e dois times na espera, ambos os times saem.</li>
+                <li>O foco é a diversão, mas sempre com respeito às regras e ao próximo.</li>
               </ul>
             </section>
           </div>
