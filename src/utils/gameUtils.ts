@@ -9,7 +9,8 @@ export const createPlayer = (name: string): Player => ({
 export const createTeam = (name: string, players: Player[]): Team => ({
   id: uuidv4(),
   name,
-  players
+  players,
+  isPlaying: false
 });
 
 export const generateTeamName = (players: Player[]): string => {
@@ -25,51 +26,63 @@ export const generateTeamName = (players: Player[]): string => {
   return `${acronym} ${randomSuffix}`;
 };
 
-export const formTeamsFromUnassigned = (players: Player[]): Team[] => {
-  const teams: Team[] = [];
-  const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-  
-  for (let i = 0; i < shuffledPlayers.length; i += 3) {
-    if (i + 3 <= shuffledPlayers.length) {
-      const teamPlayers = shuffledPlayers.slice(i, i + 3);
-      const teamName = generateTeamName(teamPlayers);
-      teams.push(createTeam(teamName, teamPlayers));
-    }
-  }
-  
-  return teams;
-};
-
 export const initializeGame = (state: GameState): GameState => {
-  const newTeams = formTeamsFromUnassigned(state.unassignedPlayers);
-  const allTeams = [...state.teams, ...newTeams];
-  
-  let currentGame = { ...state.currentGame };
-  let remainingTeams = [...allTeams];
-  
-  if (!currentGame.teamA && remainingTeams.length > 0) {
-    currentGame.teamA = remainingTeams[0];
-    remainingTeams[0] = { ...remainingTeams[0], isPlaying: true };
-    remainingTeams = remainingTeams.slice(1);
+  // Get all teams that aren't currently in a game
+  const availableTeams = state.teams.filter(team => 
+    !team.isPlaying && 
+    team.id !== state.currentGame.teamA?.id && 
+    team.id !== state.currentGame.teamB?.id
+  );
+
+  // If we have no current game and at least 2 teams, start a new game
+  if (!state.currentGame.teamA && !state.currentGame.teamB && availableTeams.length >= 2) {
+    const [teamA, teamB] = availableTeams;
+    
+    return {
+      ...state,
+      teams: state.teams.map(team => ({
+        ...team,
+        isPlaying: team.id === teamA.id || team.id === teamB.id
+      })),
+      currentGame: {
+        teamA: { ...teamA, isPlaying: true },
+        teamB: { ...teamB, isPlaying: true }
+      }
+    };
   }
-  
-  if (!currentGame.teamB && remainingTeams.length > 0) {
-    currentGame.teamB = remainingTeams[0];
-    remainingTeams[0] = { ...remainingTeams[0], isPlaying: true };
-    remainingTeams = remainingTeams.slice(1);
+
+  // If we have one slot open and available teams, fill it
+  if (!state.currentGame.teamA && availableTeams.length > 0) {
+    const [nextTeam] = availableTeams;
+    return {
+      ...state,
+      teams: state.teams.map(team => ({
+        ...team,
+        isPlaying: team.id === nextTeam.id || team.id === state.currentGame.teamB?.id
+      })),
+      currentGame: {
+        ...state.currentGame,
+        teamA: { ...nextTeam, isPlaying: true }
+      }
+    };
   }
-  
-  return {
-    ...state,
-    teams: allTeams.map(team => ({
-      ...team,
-      isPlaying: team.id === currentGame.teamA?.id || team.id === currentGame.teamB?.id
-    })),
-    currentGame,
-    unassignedPlayers: state.unassignedPlayers.filter(player => 
-      !allTeams.some(team => team.players.some(p => p.id === player.id))
-    )
-  };
+
+  if (!state.currentGame.teamB && availableTeams.length > 0) {
+    const [nextTeam] = availableTeams;
+    return {
+      ...state,
+      teams: state.teams.map(team => ({
+        ...team,
+        isPlaying: team.id === nextTeam.id || team.id === state.currentGame.teamA?.id
+      })),
+      currentGame: {
+        ...state.currentGame,
+        teamB: { ...nextTeam, isPlaying: true }
+      }
+    };
+  }
+
+  return state;
 };
 
 export const handleGameWinner = (state: GameState, winnerTeamId: string): GameState => {
@@ -82,35 +95,24 @@ export const handleGameWinner = (state: GameState, winnerTeamId: string): GameSt
   
   if (!winnerTeam || !loserTeam) return state;
   
-  const updatedTeams = state.teams
-    .map(team => ({
-      ...team,
-      isPlaying: team.id === winnerTeamId || team.id === state.teams[0]?.id
-    }))
-    .filter(team => team.id !== loserTeam.id)
-    .concat({ ...loserTeam, isPlaying: false });
-  
-  const nextTeam = updatedTeams.find(team => 
-    !team.isPlaying && team.id !== winnerTeamId && team.id !== loserTeam.id
+  // Find the next available team
+  const nextTeam = state.teams.find(team => 
+    !team.isPlaying && 
+    team.id !== winnerTeamId && 
+    team.id !== loserTeam.id
   );
   
-  const currentGame = {
-    teamA: winnerTeam,
-    teamB: nextTeam || null
-  };
-  
-  const finalTeams = updatedTeams.map(team => ({
+  const updatedTeams = state.teams.map(team => ({
     ...team,
     isPlaying: team.id === winnerTeamId || team.id === nextTeam?.id
   }));
   
   return {
     ...state,
-    teams: finalTeams,
-    currentGame
+    teams: updatedTeams,
+    currentGame: {
+      teamA: { ...winnerTeam, isPlaying: true },
+      teamB: nextTeam || null
+    }
   };
-};
-
-export const getNextAvailablePlayers = (state: GameState): Player[] => {
-  return state.unassignedPlayers.slice(0, 3);
 };

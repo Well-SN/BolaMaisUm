@@ -27,7 +27,7 @@ const CurrentGame: React.FC = () => {
       ? currentGame.teamA 
       : currentGame.teamB;
     
-    toast.success(`${winnerTeam.name} wins and stays on the court! 🏆`);
+    toast.success(`${winnerTeam.name} ganhou a partida 🏆`);
   };
   
   // Find the next team in the queue
@@ -45,9 +45,9 @@ const CurrentGame: React.FC = () => {
         animate={{ opacity: 1 }}
       >
         <AlertCircle size={48} className="mx-auto mb-4 text-neon-orange" />
-        <h2 className="text-2xl font-graffiti mb-2">No Game in Progress</h2>
+        <h2 className="text-2xl font-gretoon mb-2">Nenhum jogo iniciado</h2>
         <p className="text-gray-300 mb-4">
-          Add some players and create teams to get started!
+          Adicione jogadores e crie um time para iniciar!
         </p>
       </motion.div>
     );
@@ -60,8 +60,8 @@ const CurrentGame: React.FC = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h2 className="text-2xl font-graffiti mb-4 text-center text-neon-orange graffiti-text">
-          CURRENT MATCH
+        <h2 className="text-2xl font-gretoon mb-4 text-center text-neon-orange gretoon-text">
+          Partida em Andamento
         </h2>
         
         <div className="flex flex-col md:flex-row gap-4 items-stretch">
@@ -77,7 +77,7 @@ const CurrentGame: React.FC = () => {
                   onClick={() => handleSetWinner(currentGame.teamA!.id)}
                   className="btn btn-primary flex items-center gap-2 mx-auto"
                 >
-                  <Trophy size={16} /> Winner
+                  <Trophy size={16} /> Vencedor
                 </button>
               </div>
             </div>
@@ -99,7 +99,7 @@ const CurrentGame: React.FC = () => {
                   onClick={() => handleSetWinner(currentGame.teamB!.id)}
                   className="btn btn-primary flex items-center gap-2 mx-auto"
                 >
-                  <Trophy size={16} /> Winner
+                  <Trophy size={16} /> Vencedor
                 </button>
               </div>
             </div>
@@ -122,7 +122,7 @@ const CurrentGame: React.FC = () => {
           transition={{ delay: 0.2 }}
         >
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-graffiti text-neon-blue">Next Up</h3>
+            <h3 className="text-xl font-graffiti text-neon-blue">Proximo time</h3>
             <button 
               onClick={() => setEditingTeam(nextTeam)}
               className="btn btn-outline btn-sm flex items-center gap-1"

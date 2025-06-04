@@ -50,7 +50,7 @@ const UnassignedPlayers: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           <UserMinus size={20} className="text-neon-pink" />
-          <h2 className="text-xl font-graffiti">Unassigned Players</h2>
+          <h2 className="text-xl font-graffiti">Jogadores sem Time</h2>
         </div>
         
         {unassignedPlayers.length >= 3 && (
@@ -58,7 +58,7 @@ const UnassignedPlayers: React.FC = () => {
             onClick={handleCreateRandomTeam}
             className="btn btn-accent btn-sm flex items-center gap-1"
           >
-            <Users size={14} /> Form Team
+            <Users size={14} /> Formar Time
           </button>
         )}
       </div>

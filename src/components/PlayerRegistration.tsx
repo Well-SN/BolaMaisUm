@@ -14,7 +14,7 @@ const PlayerRegistration: React.FC = () => {
 
   const handleAddPlayer = () => {
     if (!playerName.trim()) {
-      toast.error('Please enter a player name');
+      toast.error('Coloque o nome do jogador');
       return;
     }
 
@@ -23,18 +23,22 @@ const PlayerRegistration: React.FC = () => {
       payload: { name: playerName.trim() }
     });
     
-    toast.success(`${playerName} added to the roster!`);
+    toast.success(`${playerName} Adicionado!`);
     setPlayerName('');
+
+    console.log();
   };
+
+
 
   const handleCreateTeam = () => {
     if (selectedPlayers.length === 0) {
-      toast.error('Please select at least one player');
+      toast.error('Selecione pelo menos um jogador');
       return;
     }
 
     if (selectedPlayers.length > 3) {
-      toast.error('A team can have a maximum of 3 players');
+      toast.error('Uma equipe pode ter no máximo 3 jogadores');
       return;
     }
 
@@ -46,7 +50,7 @@ const PlayerRegistration: React.FC = () => {
       }
     });
     
-    toast.success('Team created!');
+    toast.success('Time criado!');
     setSelectedPlayers([]);
     setTeamName('');
     setTeamMode(false);
@@ -59,7 +63,7 @@ const PlayerRegistration: React.FC = () => {
       if (selectedPlayers.length < 3) {
         setSelectedPlayers([...selectedPlayers, playerId]);
       } else {
-        toast.error('A team can have a maximum of 3 players');
+        toast.error('Uma time pode ter no máximo 3 jogadores');
       }
     }
   };
@@ -74,35 +78,35 @@ const PlayerRegistration: React.FC = () => {
       transition={{ duration: 0.3 }}
     >
       <h2 className="text-2xl font-graffiti mb-4 text-neon-orange graffiti-text">
-        {teamMode ? 'Create Your Squad' : 'Sign Up to Ball'}
+        {teamMode ? 'Crie seu time' : 'Inscreva um jogador!'}
       </h2>
 
       <div className="mb-4">
         <button 
           onClick={() => setTeamMode(!teamMode)}
-          className={`btn ${teamMode ? 'btn-secondary' : 'btn-primary'} flex items-center gap-2`}
+          className={`btn ${teamMode ? 'btn-secondary' : 'btn-primary'} flex items-center gap-2 whitespace-nowrap px-4 py-2`}
         >
           {teamMode ? <UsersRound size={18} /> : <User size={18} />}
-          {teamMode ? 'Team Mode' : 'Individual Mode'}
+          {teamMode ? 'Time' : 'Individual'}
         </button>
       </div>
 
       {!teamMode ? (
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Enter player name"
+              placeholder="Coloque o nome do jogador"
               className="input-field flex-1"
               onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
             />
             <button 
               onClick={handleAddPlayer}
-              className="btn btn-primary flex items-center gap-1"
+              className="btn btn-primary flex items-center justify-center gap-1 whitespace-nowrap px-4 py-2"
             >
-              <Plus size={18} /> Add
+              <Plus size={18} /> ADD
             </button>
           </div>
         </div>
@@ -112,12 +116,12 @@ const PlayerRegistration: React.FC = () => {
             type="text"
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
-            placeholder="Team name (optional)"
+            placeholder="Nome do Time (opcional)"
             className="input-field w-full"
           />
 
           <div className="bg-court-light rounded-md p-2">
-            <h3 className="text-lg font-bold mb-2">Select Players (max 3)</h3>
+            <h3 className="text-lg font-bold mb-2">Selecione no máximo 3</h3>
             {state.unassignedPlayers.length > 0 ? (
               <div className="max-h-40 overflow-y-auto space-y-1">
                 {state.unassignedPlayers.map((player: Player) => (
@@ -126,7 +130,7 @@ const PlayerRegistration: React.FC = () => {
                     onClick={() => togglePlayerSelection(player.id)}
                     className={`player-item cursor-pointer ${
                       isPlayerSelected(player.id) 
-                        ? 'bg-neon-blue bg-opacity-20 border border-neon-blue' 
+                        ? 'bg-neon-orange bg-opacity-20 border border-neon-orange' 
                         : ''
                     }`}
                   >
@@ -134,29 +138,29 @@ const PlayerRegistration: React.FC = () => {
                     <span>{player.name}</span>
                     {isPlayerSelected(player.id) && (
                       <span className="ml-auto">
-                        <X size={16} className="text-neon-blue" />
+                        <X size={16} className="text-neon-orange" />
                       </span>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-400 italic">No available players. Add some first!</p>
+              <p className="text-gray-400 italic">Nenhum jogador disponível. Adicione alguns primeiro!</p>
             )}
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-sm">
-              {selectedPlayers.length}/3 players selected
+              {selectedPlayers.length}/3 jogadores selecionados
             </span>
             <button
               onClick={handleCreateTeam}
               disabled={selectedPlayers.length === 0}
-              className={`btn btn-primary ${
+              className={`btn btn-primary whitespace-nowrap px-4 py-2 ${
                 selectedPlayers.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              Create Team
+              Criar time
             </button>
           </div>
         </div>

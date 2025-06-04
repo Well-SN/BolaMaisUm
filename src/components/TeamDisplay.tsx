@@ -22,7 +22,7 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
 
   const handleDeleteTeam = () => {
     if (isPlaying) {
-      toast.error("Can't delete a team that's currently playing");
+      toast.error("Não é possível excluir um time que está jogando no momento");
       return;
     }
     
@@ -30,7 +30,7 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
       type: ActionType.REMOVE_TEAM,
       payload: { teamId: team.id }
     });
-    toast.success('Team deleted');
+    toast.success('Time Deletado');
   };
 
   const cardVariants = {
@@ -45,6 +45,7 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
         : 'none'
     }
   };
+
 
   return (
     <motion.div
@@ -68,7 +69,7 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
               : 'bg-neon-blue text-black'
           }`}
         >
-          {isPlaying ? 'ON COURT' : 'NEXT UP'}
+          {isPlaying ? 'NA QUADRA' : 'PRÓXIMO'}
         </div>
       )}
       
@@ -102,7 +103,7 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
       <div className="flex items-center gap-2 mb-3">
         <Users size={16} className="text-gray-400" />
         <span className="text-sm text-gray-300">
-          {team.players.length} players
+          {team.players.length} Jogadores
         </span>
       </div>
       
