@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
@@ -84,26 +83,29 @@ const saveToSupabase = async (state: GameState) => {
           }
         }
     
-        // Save teams with players
+        // Save teams with players - NEVER delete teams with players
         for (const team of state.teams) {
-          await supabase
-            .from('teams')
-            .upsert({ 
-              id: team.id, 
-              name: team.name,
-              is_playing: team.isPlaying || false 
-            })
-            .throwOnError();
-    
-          // Save team players relationships
-          for (const player of team.players) {
+          // Only save teams that have players
+          if (team.players.length > 0) {
             await supabase
-              .from('team_players')
+              .from('teams')
               .upsert({ 
-                team_id: team.id,
-                player_id: player.id
+                id: team.id, 
+                name: team.name,
+                is_playing: team.isPlaying || false 
               })
               .throwOnError();
+    
+            // Save team players relationships
+            for (const player of team.players) {
+              await supabase
+                .from('team_players')
+                .upsert({ 
+                  team_id: team.id,
+                  player_id: player.id
+                })
+                .throwOnError();
+            }
           }
         }
     
@@ -241,16 +243,22 @@ const loadFromSupabase = async (): Promise<GameState> => {
           return initialState;
         }
     
-        // Build teams with their players
-        const teams = (teamsData || []).map(team => ({
-          id: team.id,
-          name: team.name,
-          isPlaying: team.is_playing || false,
-          players: teamPlayersData
-            ?.filter(tp => tp.team_id === team.id)
-            .map(tp => players.find(p => p.id === tp.player_id))
-            .filter(Boolean) || []
-        }));
+        // Build teams with their players - ONLY include teams that have players
+        const teams = (teamsData || [])
+          .map(team => {
+            const teamPlayers = teamPlayersData
+              ?.filter(tp => tp.team_id === team.id)
+              .map(tp => players.find(p => p.id === tp.player_id))
+              .filter(Boolean) || [];
+            
+            return {
+              id: team.id,
+              name: team.name,
+              isPlaying: team.is_playing || false,
+              players: teamPlayers
+            };
+          })
+          .filter(team => team.players.length > 0); // CRITICAL: Only keep teams with players
     
         console.log('Built teams:', teams);
     
@@ -303,7 +311,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
     switch (action.type) {
         case ActionType.ADD_PLAYER: {
-            const existingPlayer = state.players.find(p => p.name === action.payload.name.trim());
+            const existingPlayer = state.players.find(p => 
+              p.name.toLowerCase().trim() === action.payload.name.toLowerCase().trim()
+            );
             if (existingPlayer) {
                 console.warn(`Player with name "${action.payload.name.trim()}" already exists.`);
                 return state; 
@@ -322,10 +332,11 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             // Delete from Supabase immediately
             deletePlayerFromSupabase(playerId);
             
+            // Remove player from teams and filter out empty teams
             const updatedTeams = state.teams.map(team => ({
                 ...team,
                 players: team.players.filter(p => p.id !== playerId)
-            })).filter(team => team.players.length > 0);
+            })).filter(team => team.players.length > 0); // CRITICAL: Remove empty teams
             
             newState = {
                 ...state,
@@ -374,6 +385,12 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             const targetTeam = state.teams.find(t => t.id === teamId);
             if (!targetTeam) return state;
             
+            // If team would have no players, don't allow the edit
+            if (teamPlayers.length === 0) {
+                console.warn('Cannot edit team to have no players');
+                return state;
+            }
+            
             const removedPlayers = targetTeam.players.filter(
                 p => !playerIds.includes(p.id)
             );
@@ -421,7 +438,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             // Delete from Supabase immediately
             deleteTeamFromSupabase(teamId);
             
-            // Adicionar os jogadores do time de volta para os não atribuídos
+            // Add team players back to unassigned
             newState = {
                 ...state,
                 teams: state.teams.filter(t => t.id !== teamId),
@@ -435,7 +452,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
                 }
             };
             
-            // Se o jogo atual foi afetado, inicializar novo jogo se possível
+            // If current game was affected, initialize new game if possible
             if (state.currentGame.teamA?.id === teamId || state.currentGame.teamB?.id === teamId) {
                 newState = initializeGame(newState);
             }

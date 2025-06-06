@@ -1,26 +1,38 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { User, UserMinus, Users } from 'lucide-react';
+import { User, UserMinus, Users, Lock } from 'lucide-react';
 import { useGame } from '../contexts/GameContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ActionType, Player } from '../types';
 import { generateTeamName } from '../utils/gameUtils';
 
 const UnassignedPlayers: React.FC = () => {
   const { state, dispatch } = useGame();
+  const { user } = useAuth();
   const { unassignedPlayers } = state;
   
   const handleRemovePlayer = (playerId: string) => {
+    if (!user) {
+      toast.error('Você precisa estar logado para remover jogadores');
+      return;
+    }
+
     dispatch({
       type: ActionType.REMOVE_PLAYER,
       payload: { playerId }
     });
-    toast.success('Player removed');
+    toast.success('Jogador removido');
   };
   
   const handleCreateRandomTeam = () => {
+    if (!user) {
+      toast.error('Você precisa estar logado para criar times');
+      return;
+    }
+
     if (unassignedPlayers.length < 3) {
-      toast.error('Need at least 3 unassigned players to form a team');
+      toast.error('Precisa de pelo menos 3 jogadores não atribuídos para formar um time');
       return;
     }
     
@@ -33,7 +45,7 @@ const UnassignedPlayers: React.FC = () => {
       payload: { playerIds, teamName }
     });
     
-    toast.success(`Team "${teamName}" created!`);
+    toast.success(`Time "${teamName}" criado!`);
   };
   
   if (unassignedPlayers.length === 0) {
@@ -54,12 +66,19 @@ const UnassignedPlayers: React.FC = () => {
         </div>
         
         {unassignedPlayers.length >= 3 && (
-          <button 
-            onClick={handleCreateRandomTeam}
-            className="btn btn-accent btn-sm flex items-center gap-1"
-          >
-            <Users size={14} /> Formar Time
-          </button>
+          user ? (
+            <button 
+              onClick={handleCreateRandomTeam}
+              className="btn btn-accent btn-sm flex items-center gap-1"
+            >
+              <Users size={14} /> Formar Time
+            </button>
+          ) : (
+            <div className="flex items-center gap-1 text-gray-400 text-sm">
+              <Lock size={14} />
+              <span className="hidden sm:inline">Login necessário</span>
+            </div>
+          )
         )}
       </div>
       
@@ -73,12 +92,16 @@ const UnassignedPlayers: React.FC = () => {
               <User size={16} className="text-gray-400" />
               <span>{player.name}</span>
             </div>
-            <button
-              onClick={() => handleRemovePlayer(player.id)}
-              className="text-gray-500 hover:text-white"
-            >
-              <UserMinus size={16} />
-            </button>
+            {user ? (
+              <button
+                onClick={() => handleRemovePlayer(player.id)}
+                className="text-gray-500 hover:text-white"
+              >
+                <UserMinus size={16} />
+              </button>
+            ) : (
+              <Lock size={16} className="text-gray-500" />
+            )}
           </div>
         ))}
       </div>

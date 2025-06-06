@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Users, UserMinus, Edit, Trash } from 'lucide-react';
+import { Users, UserMinus, Edit, Trash, Lock } from 'lucide-react';
 import { Team, Player, ActionType } from '../types';
 import { useGame } from '../contexts/GameContext';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 interface TeamDisplayProps {
@@ -11,17 +11,25 @@ interface TeamDisplayProps {
   isPlaying?: boolean;
   isNext?: boolean;
   onEdit?: () => void;
+  showActions?: boolean;
 }
 
 const TeamDisplay: React.FC<TeamDisplayProps> = ({ 
   team, 
   isPlaying = false,
   isNext = false,
-  onEdit 
+  onEdit,
+  showActions = true
 }) => {
   const { dispatch } = useGame();
+  const { user } = useAuth();
 
   const handleDeleteTeam = () => {
+    if (!user) {
+      toast.error('Você precisa estar logado para excluir times');
+      return;
+    }
+
     if (isPlaying) {
       toast.error("Não é possível excluir um time que está jogando no momento");
       return;
@@ -80,25 +88,32 @@ const TeamDisplay: React.FC<TeamDisplayProps> = ({
           </span>
         </h3>
         
-        <div className="flex gap-2">
-          {onEdit && (
-            <button 
-              onClick={onEdit}
-              className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-court transition-colors"
-            >
-              <Edit size={16} />
-            </button>
-          )}
-          {!isPlaying && (
-            <button 
-              onClick={handleDeleteTeam}
-              className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-court transition-colors"
-              title="Deletar time e jogadores"
-            >
-              <Trash size={16} />
-            </button>
-          )}
-        </div>
+        {showActions && (
+          <div className="flex gap-2">
+            {onEdit && user && (
+              <button 
+                onClick={onEdit}
+                className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-court transition-colors"
+              >
+                <Edit size={16} />
+              </button>
+            )}
+            {!isPlaying && user && (
+              <button 
+                onClick={handleDeleteTeam}
+                className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-court transition-colors"
+                title="Deletar time e jogadores"
+              >
+                <Trash size={16} />
+              </button>
+            )}
+            {!user && (onEdit || !isPlaying) && (
+              <div className="text-gray-500 p-1" title="Login necessário">
+                <Lock size={16} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       <div className="flex items-center gap-2 mb-3">

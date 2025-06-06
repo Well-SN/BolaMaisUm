@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import { Plus, User, UsersRound, X } from 'lucide-react';
+import { Plus, User, UsersRound, X, Lock } from 'lucide-react';
 import { useGame } from '../contexts/GameContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ActionType, Player } from '../types';
 
 const PlayerRegistration: React.FC = () => {
   const { state, dispatch } = useGame();
+  const { user } = useAuth();
   const [playerName, setPlayerName] = useState('');
   const [teamMode, setTeamMode] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
 
   const handleAddPlayer = () => {
+    if (!user) {
+      toast.error('Você precisa estar logado para adicionar jogadores');
+      return;
+    }
+
     if (!playerName.trim()) {
       toast.error('Coloque o nome do jogador');
       return;
@@ -25,13 +32,14 @@ const PlayerRegistration: React.FC = () => {
     
     toast.success(`${playerName} Adicionado!`);
     setPlayerName('');
-
-    console.log();
   };
 
-
-
   const handleCreateTeam = () => {
+    if (!user) {
+      toast.error('Você precisa estar logado para criar times');
+      return;
+    }
+
     if (selectedPlayers.length === 0) {
       toast.error('Selecione pelo menos um jogador');
       return;
@@ -69,6 +77,25 @@ const PlayerRegistration: React.FC = () => {
   };
 
   const isPlayerSelected = (playerId: string) => selectedPlayers.includes(playerId);
+
+  if (!user) {
+    return (
+      <motion.div 
+        className="card fence-bg my-6 text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Lock size={48} className="mx-auto mb-4 text-gray-400" />
+        <h2 className="text-xl font-graffiti mb-2 text-gray-300">
+          Área Restrita
+        </h2>
+        <p className="text-gray-400">
+          Apenas usuários logados podem adicionar jogadores e criar times.
+        </p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 

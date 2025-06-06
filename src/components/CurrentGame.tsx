@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Trophy, AlertCircle, Edit } from 'lucide-react';
+import { Trophy, AlertCircle, Edit, Lock } from 'lucide-react';
 import { useGame } from '../contexts/GameContext';
+import { useAuth } from '../contexts/AuthContext';
 import TeamDisplay from './TeamDisplay';
 import TeamEditor from './TeamEditor';
 import { ActionType, Team } from '../types';
 
 const CurrentGame: React.FC = () => {
   const { state, dispatch } = useGame();
+  const { user } = useAuth();
   const { currentGame } = state;
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   
   const handleSetWinner = (teamId: string) => {
+    if (!user) {
+      toast.error('Você precisa estar logado para definir vencedores');
+      return;
+    }
+
     if (!currentGame.teamA || !currentGame.teamB) {
-      toast.error("Can't set a winner when there's not a full game");
+      toast.error("Não é possível definir um vencedor quando não há um jogo completo");
       return;
     }
     
@@ -28,6 +35,14 @@ const CurrentGame: React.FC = () => {
       : currentGame.teamB;
     
     toast.success(`${winnerTeam.name} ganhou a partida 🏆`);
+  };
+
+  const handleEdit = (team: Team) => {
+    if (!user) {
+      toast.error('Você precisa estar logado para editar times');
+      return;
+    }
+    setEditingTeam(team);
   };
   
   // Find the next team in the queue
@@ -70,16 +85,19 @@ const CurrentGame: React.FC = () => {
               <TeamDisplay 
                 team={currentGame.teamA} 
                 isPlaying={true}
-                onEdit={() => setEditingTeam(currentGame.teamA!)}
+                onEdit={user ? () => handleEdit(currentGame.teamA!) : undefined}
+                showActions={!!user}
               />
-              <div className="mt-3 text-center">
-                <button 
-                  onClick={() => handleSetWinner(currentGame.teamA!.id)}
-                  className="btn btn-primary flex items-center gap-2 mx-auto"
-                >
-                  <Trophy size={16} /> Vencedor
-                </button>
-              </div>
+              {user && (
+                <div className="mt-3 text-center">
+                  <button 
+                    onClick={() => handleSetWinner(currentGame.teamA!.id)}
+                    className="btn btn-primary flex items-center gap-2 mx-auto"
+                  >
+                    <Trophy size={16} /> Vencedor
+                  </button>
+                </div>
+              )}
             </div>
           )}
           
@@ -92,22 +110,25 @@ const CurrentGame: React.FC = () => {
               <TeamDisplay 
                 team={currentGame.teamB} 
                 isPlaying={true}
-                onEdit={() => setEditingTeam(currentGame.teamB!)}
+                onEdit={user ? () => handleEdit(currentGame.teamB!) : undefined}
+                showActions={!!user}
               />
-              <div className="mt-3 text-center">
-                <button 
-                  onClick={() => handleSetWinner(currentGame.teamB!.id)}
-                  className="btn btn-primary flex items-center gap-2 mx-auto"
-                >
-                  <Trophy size={16} /> Vencedor
-                </button>
-              </div>
+              {user && (
+                <div className="mt-3 text-center">
+                  <button 
+                    onClick={() => handleSetWinner(currentGame.teamB!.id)}
+                    className="btn btn-primary flex items-center gap-2 mx-auto"
+                  >
+                    <Trophy size={16} /> Vencedor
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center p-6 bg-court border border-dashed border-gray-600 rounded-lg">
                 <AlertCircle size={24} className="mx-auto mb-2 text-neon-orange" />
-                <p className="text-gray-300">Waiting for another team...</p>
+                <p className="text-gray-300">Aguardando outro time...</p>
               </div>
             </div>
           )}
@@ -122,20 +143,27 @@ const CurrentGame: React.FC = () => {
           transition={{ delay: 0.2 }}
         >
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-graffiti text-neon-blue">Proximo time</h3>
-            <button 
-              onClick={() => setEditingTeam(nextTeam)}
-              className="btn btn-outline btn-sm flex items-center gap-1"
-            >
-              <Edit size={14} /> Edit
-            </button>
+            <h3 className="text-xl font-graffiti text-neon-blue">Próximo time</h3>
+            {user ? (
+              <button 
+                onClick={() => handleEdit(nextTeam)}
+                className="btn btn-outline btn-sm flex items-center gap-1"
+              >
+                <Edit size={14} /> Editar
+              </button>
+            ) : (
+              <div className="flex items-center gap-1 text-gray-400 text-sm">
+                <Lock size={14} />
+                <span className="hidden sm:inline">Login necessário</span>
+              </div>
+            )}
           </div>
           
-          <TeamDisplay team={nextTeam} isNext={true} />
+          <TeamDisplay team={nextTeam} isNext={true} showActions={!!user} />
         </motion.div>
       )}
       
-      {editingTeam && (
+      {editingTeam && user && (
         <TeamEditor 
           team={editingTeam} 
           onClose={() => setEditingTeam(null)} 
