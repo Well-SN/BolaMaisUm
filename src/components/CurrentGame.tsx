@@ -6,17 +6,20 @@ import { useGame } from '../contexts/GameContext';
 import { useAuth } from '../contexts/AuthContext';
 import TeamDisplay from './TeamDisplay';
 import TeamEditor from './TeamEditor';
+import ConfirmationModal from './ConfirmationModal';
 import { ActionType, Team } from '../types';
 
 const CurrentGame: React.FC = () => {
   const { state, dispatch } = useGame();
-  const { user } = useAuth();
+  const { isAdmin } = useAuth();
   const { currentGame } = state;
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [showWinnerConfirm, setShowWinnerConfirm] = useState(false);
+  const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
   
-  const handleSetWinner = (teamId: string) => {
-    if (!user) {
-      toast.error('Você precisa estar logado para definir vencedores');
+  const handleSetWinnerRequest = (teamId: string) => {
+    if (!isAdmin) {
+      toast.error('Você precisa estar logado como administrador');
       return;
     }
 
@@ -25,21 +28,29 @@ const CurrentGame: React.FC = () => {
       return;
     }
     
+    setSelectedWinner(teamId);
+    setShowWinnerConfirm(true);
+  };
+
+  const handleSetWinnerConfirm = () => {
+    if (!selectedWinner) return;
+
     dispatch({
       type: ActionType.SET_WINNER,
-      payload: { teamId }
+      payload: { teamId: selectedWinner }
     });
     
-    const winnerTeam = teamId === currentGame.teamA.id 
+    const winnerTeam = selectedWinner === currentGame.teamA?.id 
       ? currentGame.teamA 
       : currentGame.teamB;
     
-    toast.success(`${winnerTeam.name} ganhou a partida 🏆`);
+    toast.success(`${winnerTeam?.name} ganhou a partida 🏆`);
+    setSelectedWinner(null);
   };
 
   const handleEdit = (team: Team) => {
-    if (!user) {
-      toast.error('Você precisa estar logado para editar times');
+    if (!isAdmin) {
+      toast.error('Você precisa estar logado como administrador');
       return;
     }
     setEditingTeam(team);
@@ -51,6 +62,13 @@ const CurrentGame: React.FC = () => {
     team.id !== currentGame.teamA?.id && 
     team.id !== currentGame.teamB?.id
   );
+
+  const getWinnerTeamName = () => {
+    if (!selectedWinner) return '';
+    return selectedWinner === currentGame.teamA?.id 
+      ? currentGame.teamA?.name 
+      : currentGame.teamB?.name;
+  };
   
   if (!currentGame.teamA && !currentGame.teamB) {
     return (
@@ -85,13 +103,13 @@ const CurrentGame: React.FC = () => {
               <TeamDisplay 
                 team={currentGame.teamA} 
                 isPlaying={true}
-                onEdit={user ? () => handleEdit(currentGame.teamA!) : undefined}
-                showActions={!!user}
+                onEdit={isAdmin ? () => handleEdit(currentGame.teamA!) : undefined}
+                showActions={!!isAdmin}
               />
-              {user && (
+              {isAdmin && (
                 <div className="mt-3 text-center">
                   <button 
-                    onClick={() => handleSetWinner(currentGame.teamA!.id)}
+                    onClick={() => handleSetWinnerRequest(currentGame.teamA!.id)}
                     className="btn btn-primary flex items-center gap-2 mx-auto"
                   >
                     <Trophy size={16} /> Vencedor
@@ -110,13 +128,13 @@ const CurrentGame: React.FC = () => {
               <TeamDisplay 
                 team={currentGame.teamB} 
                 isPlaying={true}
-                onEdit={user ? () => handleEdit(currentGame.teamB!) : undefined}
-                showActions={!!user}
+                onEdit={isAdmin ? () => handleEdit(currentGame.teamB!) : undefined}
+                showActions={!!isAdmin}
               />
-              {user && (
+              {isAdmin && (
                 <div className="mt-3 text-center">
                   <button 
-                    onClick={() => handleSetWinner(currentGame.teamB!.id)}
+                    onClick={() => handleSetWinnerRequest(currentGame.teamB!.id)}
                     className="btn btn-primary flex items-center gap-2 mx-auto"
                   >
                     <Trophy size={16} /> Vencedor
@@ -144,7 +162,7 @@ const CurrentGame: React.FC = () => {
         >
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-graffiti text-neon-blue">Próximo time</h3>
-            {user ? (
+            {isAdmin ? (
               <button 
                 onClick={() => handleEdit(nextTeam)}
                 className="btn btn-outline btn-sm flex items-center gap-1"
@@ -154,16 +172,29 @@ const CurrentGame: React.FC = () => {
             ) : (
               <div className="flex items-center gap-1 text-gray-400 text-sm">
                 <Lock size={14} />
-                <span className="hidden sm:inline">Login necessário</span>
+                <span className="hidden sm:inline">Admin necessário</span>
               </div>
             )}
           </div>
           
-          <TeamDisplay team={nextTeam} isNext={true} showActions={!!user} />
+          <TeamDisplay team={nextTeam} isNext={true} showActions={!!isAdmin} />
         </motion.div>
       )}
+
+      <ConfirmationModal
+        isOpen={showWinnerConfirm}
+        onClose={() => {
+          setShowWinnerConfirm(false);
+          setSelectedWinner(null);
+        }}
+        onConfirm={handleSetWinnerConfirm}
+        title="Definir Vencedor"
+        message={`Você tem certeza que deseja definir "${getWinnerTeamName()}" como vencedor desta partida? O time perdedor irá para o final da fila.`}
+        confirmText="Sim, Definir Vencedor"
+        icon={<Trophy size={24} className="text-yellow-400" />}
+      />
       
-      {editingTeam && user && (
+      {editingTeam && isAdmin && (
         <TeamEditor 
           team={editingTeam} 
           onClose={() => setEditingTeam(null)} 

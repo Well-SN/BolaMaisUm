@@ -7,100 +7,85 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (email: string, password: string) => Promise<boolean>;
+  isAdmin: boolean;
+  signIn: (username: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
+
+const ADMIN_CREDENTIALS = {
+  username: 'bolaadm',
+  password: 'bola+1adm'
+};
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
-  loading: true,
+  loading: false,
+  isAdmin: false,
   signIn: async () => false,
-  signUp: async () => false,
   signOut: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    // Check if admin is logged in from localStorage
+    const adminSession = localStorage.getItem('admin_session');
+    if (adminSession) {
+      const sessionData = JSON.parse(adminSession);
+      if (sessionData.username === ADMIN_CREDENTIALS.username) {
+        setIsAdmin(true);
+        setUser({ email: 'admin@bolamaisum.com' } as User);
+      }
+    }
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<boolean> => {
+  const signIn = async (username: string, password: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      setLoading(true);
 
-      if (error) {
-        toast.error(error.message);
+      if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+        const adminSession = {
+          username,
+          timestamp: Date.now()
+        };
+        
+        localStorage.setItem('admin_session', JSON.stringify(adminSession));
+        setIsAdmin(true);
+        setUser({ email: 'admin@bolamaisum.com' } as User);
+        
+        toast.success('Login de administrador realizado com sucesso!');
+        return true;
+      } else {
+        toast.error('Credenciais inválidas');
         return false;
       }
-
-      toast.success('Login realizado com sucesso!');
-      return true;
     } catch (error) {
       toast.error('Erro ao fazer login');
       return false;
-    }
-  };
-
-  const signUp = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast.error(error.message);
-        return false;
-      }
-
-      toast.success('Conta criada com sucesso!');
-      return true;
-    } catch (error) {
-      toast.error('Erro ao criar conta');
-      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Logout realizado com sucesso!');
-      }
+      localStorage.removeItem('admin_session');
+      setIsAdmin(false);
+      setUser(null);
+      setSession(null);
+      toast.success('Logout realizado com sucesso!');
     } catch (error) {
       toast.error('Erro ao fazer logout');
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, LogIn, UserPlus } from 'lucide-react';
+import { X, LogIn, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AuthModalProps {
@@ -9,27 +9,20 @@ interface AuthModalProps {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, loading } = useAuth();
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
-    const success = isLogin 
-      ? await signIn(email, password)
-      : await signUp(email, password);
-
-    setLoading(false);
+    const success = await signIn(username, password);
 
     if (success) {
       onClose();
-      setEmail('');
+      setUsername('');
       setPassword('');
     }
   };
@@ -50,9 +43,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       >
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-graffiti text-neon-blue">
-              {isLogin ? 'Login' : 'Criar Conta'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <Shield size={24} className="text-neon-blue" />
+              <h2 className="text-2xl font-graffiti text-neon-blue">
+                Login Administrador
+              </h2>
+            </div>
             <button 
               onClick={onClose}
               className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
@@ -64,14 +60,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email
+                Usuário
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="input-field w-full"
-                placeholder="seu@email.com"
+                placeholder="Nome de usuário"
                 required
               />
             </div>
@@ -87,7 +83,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 className="input-field w-full"
                 placeholder="••••••••"
                 required
-                minLength={6}
               />
             </div>
 
@@ -97,26 +92,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               className="btn btn-primary w-full flex items-center justify-center gap-2"
             >
               {loading ? (
-                'Carregando...'
+                'Verificando...'
               ) : (
                 <>
-                  {isLogin ? <LogIn size={16} /> : <UserPlus size={16} />}
-                  {isLogin ? 'Entrar' : 'Criar Conta'}
+                  <LogIn size={16} />
+                  Entrar como Admin
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-neon-blue hover:text-white transition-colors"
-            >
-              {isLogin 
-                ? 'Não tem conta? Criar uma' 
-                : 'Já tem conta? Fazer login'
-              }
-            </button>
+          <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-yellow-300 text-sm text-center">
+              <Shield size={16} className="inline mr-1" />
+              Acesso restrito apenas para administradores
+            </p>
           </div>
         </div>
       </motion.div>

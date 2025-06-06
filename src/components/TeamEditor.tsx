@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { X, Save, UserMinus, UserPlus } from 'lucide-react';
 import { useGame } from '../contexts/GameContext';
+import ConfirmationModal from './ConfirmationModal';
 import { Team, Player, ActionType } from '../types';
 
 interface TeamEditorProps {
@@ -14,23 +14,28 @@ interface TeamEditorProps {
 const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
   const { state, dispatch } = useGame();
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   
   // Initialize with current team players
   useEffect(() => {
     setSelectedPlayers(team.players.map(p => p.id));
   }, [team]);
   
-  const handleSaveTeam = () => {
+  const handleSaveTeamRequest = () => {
     if (selectedPlayers.length === 0) {
-      toast.error('A team must have at least one player');
+      toast.error('Um time deve ter pelo menos um jogador');
       return;
     }
     
     if (selectedPlayers.length > 3) {
-      toast.error('A team can have a maximum of 3 players');
+      toast.error('Um time pode ter no máximo 3 jogadores');
       return;
     }
     
+    setShowSaveConfirm(true);
+  };
+
+  const handleSaveTeamConfirm = () => {
     dispatch({
       type: ActionType.EDIT_TEAM,
       payload: {
@@ -39,7 +44,7 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
       }
     });
     
-    toast.success('Team updated!');
+    toast.success('Time atualizado!');
     onClose();
   };
   
@@ -52,7 +57,7 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
       if (selectedPlayers.length < 3) {
         setSelectedPlayers([...selectedPlayers, playerId]);
       } else {
-        toast.error('A team can have a maximum of 3 players');
+        toast.error('Um time pode ter no máximo 3 jogadores');
       }
     }
   };
@@ -65,89 +70,101 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
   );
   
   return (
-    <motion.div 
-      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 overflow-y-auto"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
+    <>
       <motion.div 
-        className="w-full max-w-md bg-court-light border-2 border-gray-700 rounded-lg p-4 sm:p-5 my-4"
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
+        className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 overflow-y-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg sm:text-xl font-graffiti neon-text truncate pr-2">Edit Team: {team.name}</h2>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-white p-1"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        
-        <div className="mb-4">
-          <h3 className="text-base sm:text-lg mb-2 font-bold">Current Players</h3>
-          <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
-            {team.players.map((player: Player) => (
-              <div 
-                key={player.id}
-                onClick={() => togglePlayer(player.id)}
-                className={`player-item cursor-pointer flex items-center p-2 rounded ${
-                  isPlayerSelected(player.id) ? 'border border-neon-orange' : ''
-                }`}
-              >
-                <UserMinus size={16} className="text-neon-orange mr-2 flex-shrink-0" />
-                <span className="truncate">{player.name}</span>
-              </div>
-            ))}
+        <motion.div 
+          className="w-full max-w-md bg-court-light border-2 border-gray-700 rounded-lg p-4 sm:p-5 my-4"
+          initial={{ scale: 0.9, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 20 }}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg sm:text-xl font-graffiti neon-text truncate pr-2">Editar Time: {team.name}</h2>
+            <button 
+              onClick={onClose}
+              className="text-gray-400 hover:text-white p-1"
+            >
+              <X size={20} />
+            </button>
           </div>
-        </div>
-        
-        <div className="mb-4">
-          <h3 className="text-base sm:text-lg mb-2 font-bold">Available Players</h3>
-          {availablePlayers.length > 0 ? (
+          
+          <div className="mb-4">
+            <h3 className="text-base sm:text-lg mb-2 font-bold">Jogadores Atuais</h3>
             <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
-              {availablePlayers.map((player: Player) => (
+              {team.players.map((player: Player) => (
                 <div 
                   key={player.id}
                   onClick={() => togglePlayer(player.id)}
                   className={`player-item cursor-pointer flex items-center p-2 rounded ${
-                    isPlayerSelected(player.id) ? 'border border-neon-blue' : ''
+                    isPlayerSelected(player.id) ? 'border border-neon-orange' : ''
                   }`}
                 >
-                  <UserPlus size={16} className="text-neon-blue mr-2 flex-shrink-0" />
+                  <UserMinus size={16} className="text-neon-orange mr-2 flex-shrink-0" />
                   <span className="truncate">{player.name}</span>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-gray-400 italic">No available players</p>
-          )}
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
-          <span className="text-sm text-gray-300 mb-2 sm:mb-0">
-            {selectedPlayers.length}/3 players selected
-          </span>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button 
-              onClick={onClose}
-              className="btn btn-outline w-full sm:w-auto"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleSaveTeam}
-              className="btn btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
-            >
-              <Save size={16} /> Save
-            </button>
           </div>
-        </div>
+          
+          <div className="mb-4">
+            <h3 className="text-base sm:text-lg mb-2 font-bold">Jogadores Disponíveis</h3>
+            {availablePlayers.length > 0 ? (
+              <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
+                {availablePlayers.map((player: Player) => (
+                  <div 
+                    key={player.id}
+                    onClick={() => togglePlayer(player.id)}
+                    className={`player-item cursor-pointer flex items-center p-2 rounded ${
+                      isPlayerSelected(player.id) ? 'border border-neon-blue' : ''
+                    }`}
+                  >
+                    <UserPlus size={16} className="text-neon-blue mr-2 flex-shrink-0" />
+                    <span className="truncate">{player.name}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 italic">Nenhum jogador disponível</p>
+            )}
+          </div>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+            <span className="text-sm text-gray-300 mb-2 sm:mb-0">
+              {selectedPlayers.length}/3 jogadores selecionados
+            </span>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button 
+                onClick={onClose}
+                className="btn btn-outline w-full sm:w-auto"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleSaveTeamRequest}
+                className="btn btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                <Save size={16} /> Salvar
+              </button>
+            </div>
+          </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
+
+      <ConfirmationModal
+        isOpen={showSaveConfirm}
+        onClose={() => setShowSaveConfirm(false)}
+        onConfirm={handleSaveTeamConfirm}
+        title="Salvar Alterações"
+        message={`Você tem certeza que deseja salvar as alterações no time "${team.name}"? O time terá ${selectedPlayers.length} jogador(es).`}
+        confirmText="Sim, Salvar"
+        icon={<Save size={24} className="text-green-400" />}
+      />
+    </>
   );
 };
 

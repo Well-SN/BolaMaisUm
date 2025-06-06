@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trash2, X, LogIn, LogOut, User } from 'lucide-react';
+import { Trash2, X, LogIn, LogOut, Shield } from 'lucide-react';
 import { useGame } from '../contexts/GameContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
+import ConfirmationModal from './ConfirmationModal';
 import toast from 'react-hot-toast';
 
 const Header: React.FC = () => {
   const { resetGame } = useGame();
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const [showResetModal, setShowResetModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [password, setPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetRequest = () => {
+    setShowResetConfirm(true);
+  };
+
+  const handleResetConfirm = () => {
+    setShowResetModal(true);
+  };
 
   const handleReset = async () => {
     setIsResetting(true);
@@ -56,14 +66,14 @@ const Header: React.FC = () => {
               </div>
             </div>
             
-            {user ? (
+            {isAdmin ? (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <User size={16} />
-                  <span className="hidden sm:inline">{user.email}</span>
+                <div className="flex items-center gap-2 text-sm text-green-400">
+                  <Shield size={16} />
+                  <span className="hidden sm:inline">Admin</span>
                 </div>
                 <button
-                  onClick={() => setShowResetModal(true)}
+                  onClick={handleResetRequest}
                   className="btn btn-outline btn-sm flex items-center gap-2 whitespace-nowrap px-3 py-2"
                 >
                   <Trash2 size={14} />
@@ -83,18 +93,29 @@ const Header: React.FC = () => {
                 className="btn btn-primary btn-sm flex items-center gap-2 whitespace-nowrap px-3 py-2"
               >
                 <LogIn size={14} />
-                Login
+                Admin
               </button>
             )}
           </div>
         </div>
       </motion.header>
 
-      {showResetModal && user && (
+      <ConfirmationModal
+        isOpen={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={handleResetConfirm}
+        title="Resetar Todos os Dados"
+        message="Você tem certeza que deseja resetar todos os dados do jogo? Esta ação irá excluir todos os jogadores, times e informações do jogo atual. Esta ação não pode ser desfeita."
+        confirmText="Sim, Resetar"
+        confirmButtonClass="btn-primary"
+        icon={<Trash2 size={24} className="text-red-400" />}
+      />
+
+      {showResetModal && isAdmin && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-gradient-to-br from-neon-blue/20 to-white/5 backdrop-blur border border-white/10 rounded-lg p-5 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-neon-blue">Resetar Dados</h2>
+              <h2 className="text-xl font-bold text-neon-blue">Confirmar Reset</h2>
               <button 
                 onClick={() => setShowResetModal(false)}
                 className="text-gray-400 hover:text-white"
@@ -104,19 +125,16 @@ const Header: React.FC = () => {
             </div>
             
             <p className="text-gray-300 mb-4">
-              Isso excluirá todos os jogadores, times e dados do jogo. Esta ação não pode ser desfeita.
+              Digite a senha do administrador para confirmar o reset:
             </p>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Digite a senha do administrador para confirmar:
-              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input-field w-full"
-                placeholder="Senha"
+                placeholder="Senha de confirmação"
               />
             </div>
             
@@ -134,7 +152,7 @@ const Header: React.FC = () => {
                 disabled={isResetting}
               >
                 <Trash2 size={16} />
-                {isResetting ? 'Resetando...' : 'Resetar todos os dados'}
+                {isResetting ? 'Resetando...' : 'Confirmar Reset'}
               </button>
             </div>
           </div>

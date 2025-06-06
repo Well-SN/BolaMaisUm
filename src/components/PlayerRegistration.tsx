@@ -4,19 +4,22 @@ import { motion } from 'framer-motion';
 import { Plus, User, UsersRound, X, Lock } from 'lucide-react';
 import { useGame } from '../contexts/GameContext';
 import { useAuth } from '../contexts/AuthContext';
+import ConfirmationModal from './ConfirmationModal';
 import { ActionType, Player } from '../types';
 
 const PlayerRegistration: React.FC = () => {
   const { state, dispatch } = useGame();
-  const { user } = useAuth();
+  const { isAdmin } = useAuth();
   const [playerName, setPlayerName] = useState('');
   const [teamMode, setTeamMode] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [showAddPlayerConfirm, setShowAddPlayerConfirm] = useState(false);
+  const [showCreateTeamConfirm, setShowCreateTeamConfirm] = useState(false);
 
-  const handleAddPlayer = () => {
-    if (!user) {
-      toast.error('Você precisa estar logado para adicionar jogadores');
+  const handleAddPlayerRequest = () => {
+    if (!isAdmin) {
+      toast.error('Você precisa estar logado como administrador');
       return;
     }
 
@@ -25,6 +28,10 @@ const PlayerRegistration: React.FC = () => {
       return;
     }
 
+    setShowAddPlayerConfirm(true);
+  };
+
+  const handleAddPlayerConfirm = () => {
     dispatch({
       type: ActionType.ADD_PLAYER,
       payload: { name: playerName.trim() }
@@ -34,9 +41,9 @@ const PlayerRegistration: React.FC = () => {
     setPlayerName('');
   };
 
-  const handleCreateTeam = () => {
-    if (!user) {
-      toast.error('Você precisa estar logado para criar times');
+  const handleCreateTeamRequest = () => {
+    if (!isAdmin) {
+      toast.error('Você precisa estar logado como administrador');
       return;
     }
 
@@ -50,6 +57,10 @@ const PlayerRegistration: React.FC = () => {
       return;
     }
 
+    setShowCreateTeamConfirm(true);
+  };
+
+  const handleCreateTeamConfirm = () => {
     dispatch({
       type: ActionType.CREATE_TEAM,
       payload: { 
@@ -78,7 +89,7 @@ const PlayerRegistration: React.FC = () => {
 
   const isPlayerSelected = (playerId: string) => selectedPlayers.includes(playerId);
 
-  if (!user) {
+  if (!isAdmin) {
     return (
       <motion.div 
         className="card fence-bg my-6 text-center"
@@ -91,108 +102,130 @@ const PlayerRegistration: React.FC = () => {
           Área Restrita
         </h2>
         <p className="text-gray-400">
-          Apenas usuários logados podem adicionar jogadores e criar times.
+          Apenas administradores podem adicionar jogadores e criar times.
         </p>
       </motion.div>
     );
   }
 
   return (
-    <motion.div 
-      className="card fence-bg my-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <h2 className="text-2xl font-graffiti mb-4 text-neon-orange graffiti-text">
-        {teamMode ? 'Crie seu time' : 'Inscreva um jogador!'}
-      </h2>
+    <>
+      <motion.div 
+        className="card fence-bg my-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h2 className="text-2xl font-graffiti mb-4 text-neon-orange graffiti-text">
+          {teamMode ? 'Crie seu time' : 'Inscreva um jogador!'}
+        </h2>
 
-      <div className="mb-4">
-        <button 
-          onClick={() => setTeamMode(!teamMode)}
-          className={`btn ${teamMode ? 'btn-secondary' : 'btn-primary'} flex items-center gap-2 whitespace-nowrap px-4 py-2`}
-        >
-          {teamMode ? <UsersRound size={18} /> : <User size={18} />}
-          {teamMode ? 'Time' : 'Individual'}
-        </button>
-      </div>
+        <div className="mb-4">
+          <button 
+            onClick={() => setTeamMode(!teamMode)}
+            className={`btn ${teamMode ? 'btn-secondary' : 'btn-primary'} flex items-center gap-2 whitespace-nowrap px-4 py-2`}
+          >
+            {teamMode ? <UsersRound size={18} /> : <User size={18} />}
+            {teamMode ? 'Time' : 'Individual'}
+          </button>
+        </div>
 
-      {!teamMode ? (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-2">
+        {!teamMode ? (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Coloque o nome do jogador"
+                className="input-field flex-1"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddPlayerRequest()}
+              />
+              <button 
+                onClick={handleAddPlayerRequest}
+                className="btn btn-primary flex items-center justify-center gap-1 whitespace-nowrap px-4 py-2"
+              >
+                <Plus size={18} /> ADD
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
             <input
               type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Coloque o nome do jogador"
-              className="input-field flex-1"
-              onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="Nome do Time (opcional)"
+              className="input-field w-full"
             />
-            <button 
-              onClick={handleAddPlayer}
-              className="btn btn-primary flex items-center justify-center gap-1 whitespace-nowrap px-4 py-2"
-            >
-              <Plus size={18} /> ADD
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <input
-            type="text"
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            placeholder="Nome do Time (opcional)"
-            className="input-field w-full"
-          />
 
-          <div className="bg-court-light rounded-md p-2">
-            <h3 className="text-lg font-bold mb-2">Selecione no máximo 3</h3>
-            {state.unassignedPlayers.length > 0 ? (
-              <div className="max-h-40 overflow-y-auto space-y-1">
-                {state.unassignedPlayers.map((player: Player) => (
-                  <div
-                    key={player.id}
-                    onClick={() => togglePlayerSelection(player.id)}
-                    className={`player-item cursor-pointer ${
-                      isPlayerSelected(player.id) 
-                        ? 'bg-neon-orange bg-opacity-20 border border-neon-orange' 
-                        : ''
-                    }`}
-                  >
-                    <User size={16} />
-                    <span>{player.name}</span>
-                    {isPlayerSelected(player.id) && (
-                      <span className="ml-auto">
-                        <X size={16} className="text-neon-orange" />
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-400 italic">Nenhum jogador disponível. Adicione alguns primeiro!</p>
-            )}
-          </div>
+            <div className="bg-court-light rounded-md p-2">
+              <h3 className="text-lg font-bold mb-2">Selecione no máximo 3</h3>
+              {state.unassignedPlayers.length > 0 ? (
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {state.unassignedPlayers.map((player: Player) => (
+                    <div
+                      key={player.id}
+                      onClick={() => togglePlayerSelection(player.id)}
+                      className={`player-item cursor-pointer ${
+                        isPlayerSelected(player.id) 
+                          ? 'bg-neon-orange bg-opacity-20 border border-neon-orange' 
+                          : ''
+                      }`}
+                    >
+                      <User size={16} />
+                      <span>{player.name}</span>
+                      {isPlayerSelected(player.id) && (
+                        <span className="ml-auto">
+                          <X size={16} className="text-neon-orange" />
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400 italic">Nenhum jogador disponível. Adicione alguns primeiro!</p>
+              )}
+            </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm">
-              {selectedPlayers.length}/3 jogadores selecionados
-            </span>
-            <button
-              onClick={handleCreateTeam}
-              disabled={selectedPlayers.length === 0}
-              className={`btn btn-primary whitespace-nowrap px-4 py-2 ${
-                selectedPlayers.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              Criar time
-            </button>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">
+                {selectedPlayers.length}/3 jogadores selecionados
+              </span>
+              <button
+                onClick={handleCreateTeamRequest}
+                disabled={selectedPlayers.length === 0}
+                className={`btn btn-primary whitespace-nowrap px-4 py-2 ${
+                  selectedPlayers.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                Criar time
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-    </motion.div>
+        )}
+      </motion.div>
+
+      <ConfirmationModal
+        isOpen={showAddPlayerConfirm}
+        onClose={() => setShowAddPlayerConfirm(false)}
+        onConfirm={handleAddPlayerConfirm}
+        title="Adicionar Jogador"
+        message={`Você tem certeza que deseja adicionar o jogador "${playerName}" ao jogo?`}
+        confirmText="Sim, Adicionar"
+        icon={<User size={24} className="text-green-400" />}
+      />
+
+      <ConfirmationModal
+        isOpen={showCreateTeamConfirm}
+        onClose={() => setShowCreateTeamConfirm(false)}
+        onConfirm={handleCreateTeamConfirm}
+        title="Criar Time"
+        message={`Você tem certeza que deseja criar um time com ${selectedPlayers.length} jogador(es)${teamName ? ` chamado "${teamName}"` : ''}?`}
+        confirmText="Sim, Criar Time"
+        icon={<UsersRound size={24} className="text-blue-400" />}
+      />
+    </>
   );
 };
 
