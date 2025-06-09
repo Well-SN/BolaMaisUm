@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, AlertTriangle } from 'lucide-react';
@@ -11,6 +12,7 @@ interface ConfirmationModalProps {
   confirmText?: string;
   confirmButtonClass?: string;
   icon?: React.ReactNode;
+  variant?: 'danger' | 'success';
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -21,7 +23,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmText = 'Confirmar',
   confirmButtonClass = 'btn-primary',
-  icon
+  icon,
+  variant = 'danger'
 }) => {
   if (!isOpen) return null;
 
@@ -29,6 +32,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     onConfirm();
     onClose();
   };
+
+  const bgClass = variant === 'success' 
+    ? 'from-green-500/20 to-white/5 border-green-500/20' 
+    : 'from-red-500/20 to-white/5 border-red-500/20';
+    
+  const titleClass = variant === 'success' ? 'text-green-400' : 'text-red-400';
 
   return (
     <motion.div 
@@ -39,7 +48,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       onClick={onClose}
     >
       <motion.div 
-        className="w-full max-w-md bg-gradient-to-br from-red-500/20 to-white/5 backdrop-blur border border-red-500/20 rounded-lg shadow-xl"
+        className={`w-full max-w-md bg-gradient-to-br ${bgClass} backdrop-blur border rounded-lg shadow-xl`}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         onClick={(e) => e.stopPropagation()}
@@ -47,8 +56,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
-              {icon || <AlertTriangle size={24} className="text-red-400" />}
-              <h2 className="text-xl font-bold text-red-400">{title}</h2>
+              {icon || <AlertTriangle size={24} className={titleClass} />}
+              <h2 className={`text-xl font-bold ${titleClass}`}>{title}</h2>
             </div>
             <button 
               onClick={onClose}

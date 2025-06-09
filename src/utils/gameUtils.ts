@@ -28,14 +28,15 @@ export const generateTeamName = (players: Player[]): string => {
 };
 
 export const initializeGame = (state: GameState): GameState => {
-  // Get all teams that aren't currently in a game
+  // Get all teams that have players and aren't currently in a game
   const availableTeams = state.teams.filter(team => 
+    team.players.length > 0 && // ONLY teams with players can play
     !team.isPlaying && 
     team.id !== state.currentGame.teamA?.id && 
     team.id !== state.currentGame.teamB?.id
   );
 
-  // If we have no current game and at least 2 teams, start a new game
+  // If we have no current game and at least 2 teams with players, start a new game
   if (!state.currentGame.teamA && !state.currentGame.teamB && availableTeams.length >= 2) {
     const [teamA, teamB] = availableTeams;
     
@@ -52,7 +53,7 @@ export const initializeGame = (state: GameState): GameState => {
     };
   }
 
-  // If we have one slot open and available teams, fill it
+  // If we have one slot open and available teams with players, fill it
   if (!state.currentGame.teamA && availableTeams.length > 0) {
     const [nextTeam] = availableTeams;
     return {
@@ -99,8 +100,9 @@ export const handleGameWinner = (state: GameState, winnerTeamId: string): GameSt
   const winner = winnerTeamId === currentTeamA.id ? currentTeamA : currentTeamB;
   const loser = winnerTeamId === currentTeamA.id ? currentTeamB : currentTeamA;
   
-  // Get all available teams in queue order (not currently playing)
+  // Get all available teams in queue order (not currently playing and have players)
   const queueTeams = state.teams.filter(team => 
+    team.players.length > 0 && // ONLY teams with players can be in queue
     !team.isPlaying && 
     team.id !== currentTeamA.id && 
     team.id !== currentTeamB.id

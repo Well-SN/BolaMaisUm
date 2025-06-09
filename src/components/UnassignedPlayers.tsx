@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -13,7 +14,6 @@ const UnassignedPlayers: React.FC = () => {
   const { isAdmin } = useAuth();
   const { unassignedPlayers } = state;
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const [showCreateTeamConfirm, setShowCreateTeamConfirm] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   
   const handleRemovePlayerRequest = (playerId: string) => {
@@ -37,7 +37,7 @@ const UnassignedPlayers: React.FC = () => {
     setSelectedPlayerId(null);
   };
   
-  const handleCreateRandomTeamRequest = () => {
+  const handleCreateRandomTeam = () => {
     if (!isAdmin) {
       toast.error('Você precisa estar logado como administrador');
       return;
@@ -48,10 +48,6 @@ const UnassignedPlayers: React.FC = () => {
       return;
     }
     
-    setShowCreateTeamConfirm(true);
-  };
-
-  const handleCreateRandomTeamConfirm = () => {
     // Take the first 3 unassigned players
     const playerIds = unassignedPlayers.slice(0, 3).map(p => p.id);
     const teamName = generateTeamName(unassignedPlayers.slice(0, 3));
@@ -91,7 +87,7 @@ const UnassignedPlayers: React.FC = () => {
           {unassignedPlayers.length >= 3 && (
             isAdmin ? (
               <button 
-                onClick={handleCreateRandomTeamRequest}
+                onClick={handleCreateRandomTeam}
                 className="btn btn-accent btn-sm flex items-center gap-1"
               >
                 <Users size={14} /> Formar Time
@@ -141,16 +137,6 @@ const UnassignedPlayers: React.FC = () => {
         message={`Você tem certeza que deseja remover o jogador "${getSelectedPlayerName()}" do jogo?`}
         confirmText="Sim, Remover"
         icon={<UserMinus size={24} className="text-red-400" />}
-      />
-
-      <ConfirmationModal
-        isOpen={showCreateTeamConfirm}
-        onClose={() => setShowCreateTeamConfirm(false)}
-        onConfirm={handleCreateRandomTeamConfirm}
-        title="Formar Time Automaticamente"
-        message={`Você tem certeza que deseja formar um time automaticamente com os primeiros 3 jogadores da lista?`}
-        confirmText="Sim, Formar Time"
-        icon={<Users size={24} className="text-blue-400" />}
       />
     </>
   );

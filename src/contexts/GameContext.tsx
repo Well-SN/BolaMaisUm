@@ -83,29 +83,26 @@ const saveToSupabase = async (state: GameState) => {
           }
         }
     
-        // Save teams with players - NEVER delete teams with players
+        // Save ALL teams (including those with no players) - CRITICAL CHANGE
         for (const team of state.teams) {
-          // Only save teams that have players
-          if (team.players.length > 0) {
+          await supabase
+            .from('teams')
+            .upsert({ 
+              id: team.id, 
+              name: team.name,
+              is_playing: team.isPlaying || false 
+            })
+            .throwOnError();
+
+          // Save team players relationships only for teams that have players
+          for (const player of team.players) {
             await supabase
-              .from('teams')
+              .from('team_players')
               .upsert({ 
-                id: team.id, 
-                name: team.name,
-                is_playing: team.isPlaying || false 
+                team_id: team.id,
+                player_id: player.id
               })
               .throwOnError();
-    
-            // Save team players relationships
-            for (const player of team.players) {
-              await supabase
-                .from('team_players')
-                .upsert({ 
-                  team_id: team.id,
-                  player_id: player.id
-                })
-                .throwOnError();
-            }
           }
         }
     
@@ -243,7 +240,7 @@ const loadFromSupabase = async (): Promise<GameState> => {
           return initialState;
         }
     
-        // Build teams with their players - ONLY include teams that have players
+        // Build teams with their players - KEEP ALL TEAMS (even empty ones)
         const teams = (teamsData || [])
           .map(team => {
             const teamPlayers = teamPlayersData
@@ -257,8 +254,8 @@ const loadFromSupabase = async (): Promise<GameState> => {
               isPlaying: team.is_playing || false,
               players: teamPlayers
             };
-          })
-          .filter(team => team.players.length > 0); // CRITICAL: Only keep teams with players
+          });
+          // REMOVED the filter that was removing empty teams
     
         console.log('Built teams:', teams);
     
@@ -332,11 +329,11 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             // Delete from Supabase immediately
             deletePlayerFromSupabase(playerId);
             
-            // Remove player from teams and filter out empty teams
+            // Remove player from teams but KEEP ALL TEAMS (even if they become empty)
             const updatedTeams = state.teams.map(team => ({
                 ...team,
                 players: team.players.filter(p => p.id !== playerId)
-            })).filter(team => team.players.length > 0); // CRITICAL: Remove empty teams
+            }));
             
             newState = {
                 ...state,
@@ -365,11 +362,17 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
                 teamPlayers
             );
             
+            // CRITICAL CHANGE: Don't remove players from unassigned when creating teams
+            // Only remove them if they were actually unassigned
+            const playersToRemoveFromUnassigned = teamPlayers.filter(player => 
+                state.unassignedPlayers.some(up => up.id === player.id)
+            );
+            
             newState = {
                 ...state,
                 teams: [...state.teams, newTeam],
                 unassignedPlayers: state.unassignedPlayers.filter(
-                    p => !playerIds.includes(p.id)
+                    p => !playersToRemoveFromUnassigned.some(rp => rp.id === p.id)
                 )
             };
             

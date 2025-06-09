@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -73,13 +74,13 @@ const CurrentGame: React.FC = () => {
   if (!currentGame.teamA && !currentGame.teamB) {
     return (
       <motion.div 
-        className="card court-bg text-center py-10"
+        className="card text-center py-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <AlertCircle size={48} className="mx-auto mb-4 text-neon-orange" />
-        <h2 className="text-2xl font-gretoon mb-2">Nenhum jogo iniciado</h2>
-        <p className="text-gray-300 mb-4">
+        <AlertCircle size={40} className="mx-auto mb-3 text-neon-orange" />
+        <h2 className="text-xl font-graffiti mb-2">Nenhum jogo iniciado</h2>
+        <p className="text-gray-300 mb-4 text-sm">
           Adicione jogadores e crie um time para iniciar!
         </p>
       </motion.div>
@@ -89,64 +90,84 @@ const CurrentGame: React.FC = () => {
   return (
     <>
       <motion.div 
-        className="card court-bg mb-6"
+        className="card mb-4 bg-gradient-to-br from-neon-blue/20 to-white/5 border-2 border-neon-blue/30"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h2 className="text-2xl font-gretoon mb-4 text-center text-neon-orange gretoon-text">
+        <h2 className="text-lg sm:text-xl font-graffiti mb-3 text-center text-neon-blue">
           Partida em Andamento
         </h2>
         
-        <div className="flex flex-col md:flex-row gap-4 items-stretch">
+        <div className="flex flex-col md:flex-row gap-3 items-stretch">
           {currentGame.teamA && (
             <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-white">{currentGame.teamA.name}</h3>
+                <div className="flex gap-2">
+                  {isAdmin && (
+                    <>
+                      <button 
+                        onClick={() => handleSetWinnerRequest(currentGame.teamA!.id)}
+                        className="btn btn-primary flex items-center gap-1 text-xs px-2 py-1"
+                      >
+                        <Trophy size={12} /> Vencedor
+                      </button>
+                      <button 
+                        onClick={() => handleEdit(currentGame.teamA!)}
+                        className="btn btn-outline btn-sm flex items-center gap-1 text-xs px-2 py-1"
+                      >
+                        <Edit size={12} /> Editar
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
               <TeamDisplay 
                 team={currentGame.teamA} 
                 isPlaying={true}
-                onEdit={isAdmin ? () => handleEdit(currentGame.teamA!) : undefined}
-                showActions={!!isAdmin}
+                showActions={false}
               />
-              {isAdmin && (
-                <div className="mt-3 text-center">
-                  <button 
-                    onClick={() => handleSetWinnerRequest(currentGame.teamA!.id)}
-                    className="btn btn-primary flex items-center gap-2 mx-auto"
-                  >
-                    <Trophy size={16} /> Vencedor
-                  </button>
-                </div>
-              )}
             </div>
           )}
           
           <div className="flex items-center justify-center">
-            <div className="text-4xl font-graffiti text-white">VS</div>
+            <div className="text-2xl sm:text-3xl font-graffiti text-white">VS</div>
           </div>
           
           {currentGame.teamB ? (
             <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-white">{currentGame.teamB.name}</h3>
+                <div className="flex gap-2">
+                  {isAdmin && (
+                    <>
+                      <button 
+                        onClick={() => handleSetWinnerRequest(currentGame.teamB!.id)}
+                        className="btn btn-primary flex items-center gap-1 text-xs px-2 py-1"
+                      >
+                        <Trophy size={12} /> Vencedor
+                      </button>
+                      <button 
+                        onClick={() => handleEdit(currentGame.teamB!)}
+                        className="btn btn-outline btn-sm flex items-center gap-1 text-xs px-2 py-1"
+                      >
+                        <Edit size={12} /> Editar
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
               <TeamDisplay 
                 team={currentGame.teamB} 
                 isPlaying={true}
-                onEdit={isAdmin ? () => handleEdit(currentGame.teamB!) : undefined}
-                showActions={!!isAdmin}
+                showActions={false}
               />
-              {isAdmin && (
-                <div className="mt-3 text-center">
-                  <button 
-                    onClick={() => handleSetWinnerRequest(currentGame.teamB!.id)}
-                    className="btn btn-primary flex items-center gap-2 mx-auto"
-                  >
-                    <Trophy size={16} /> Vencedor
-                  </button>
-                </div>
-              )}
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center p-6 bg-court border border-dashed border-gray-600 rounded-lg">
-                <AlertCircle size={24} className="mx-auto mb-2 text-neon-orange" />
-                <p className="text-gray-300">Aguardando outro time...</p>
+              <div className="text-center p-4 bg-court border border-dashed border-gray-600 rounded-lg">
+                <AlertCircle size={20} className="mx-auto mb-2 text-neon-orange" />
+                <p className="text-gray-300 text-sm">Aguardando outro time...</p>
               </div>
             </div>
           )}
@@ -155,23 +176,23 @@ const CurrentGame: React.FC = () => {
       
       {nextTeam && (
         <motion.div 
-          className="card mb-6"
+          className="card mb-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-graffiti text-neon-blue">Próximo time</h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-graffiti text-neon-blue">Próximo time</h3>
             {isAdmin ? (
               <button 
                 onClick={() => handleEdit(nextTeam)}
-                className="btn btn-outline btn-sm flex items-center gap-1"
+                className="btn btn-outline btn-sm flex items-center gap-1 text-xs px-2 py-1"
               >
-                <Edit size={14} /> Editar
+                <Edit size={12} /> Editar
               </button>
             ) : (
-              <div className="flex items-center gap-1 text-gray-400 text-sm">
-                <Lock size={14} />
+              <div className="flex items-center gap-1 text-gray-400 text-xs">
+                <Lock size={12} />
                 <span className="hidden sm:inline">Admin necessário</span>
               </div>
             )}
@@ -191,7 +212,8 @@ const CurrentGame: React.FC = () => {
         title="Definir Vencedor"
         message={`Você tem certeza que deseja definir "${getWinnerTeamName()}" como vencedor desta partida? O time perdedor irá para o final da fila.`}
         confirmText="Sim, Definir Vencedor"
-        icon={<Trophy size={24} className="text-yellow-400" />}
+        icon={<Trophy size={24} className="text-green-400" />}
+        variant="success"
       />
       
       {editingTeam && isAdmin && (

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
@@ -17,7 +18,7 @@ function App() {
     <AuthProvider>
       <GameProvider>
         <div 
-          className="min-h-screen bg-[url('/c3cc4fe4d712e94b0990d0d81f63e2b1%20copy.jpg')] bg-cover bg-center bg-fixed bg-no-repeat before:content-[''] before:absolute before:inset-0 before:bg-gradient-to-b before:from-black/80 before:to-black/40 before:pointer-events-none relative"
+          className="min-h-screen bg-court-texture bg-cover bg-center bg-fixed bg-no-repeat relative"
         >
           <Toaster
             position="top-right"

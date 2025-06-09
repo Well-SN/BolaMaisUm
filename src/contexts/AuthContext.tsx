@@ -1,91 +1,59 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { User, Session } from '@supabase/supabase-js';
-import toast from 'react-hot-toast';
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
   isAdmin: boolean;
+  loading: boolean;
   signIn: (username: string, password: string) => Promise<boolean>;
-  signOut: () => Promise<void>;
+  signOut: () => void;
 }
 
-const ADMIN_CREDENTIALS = {
-  username: 'bolaadm',
-  password: 'bola+1adm'
-};
-
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  loading: false,
   isAdmin: false,
+  loading: false,
   signIn: async () => false,
-  signOut: async () => {},
+  signOut: () => {}
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+const ADMIN_USERNAME = 'bolaadm';
+const ADMIN_PASSWORD = 'bola+1adm';
 
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Check if user is already logged in on mount
   useEffect(() => {
-    // Check if admin is logged in from localStorage
-    const adminSession = localStorage.getItem('admin_session');
-    if (adminSession) {
-      const sessionData = JSON.parse(adminSession);
-      if (sessionData.username === ADMIN_CREDENTIALS.username) {
-        setIsAdmin(true);
-        setUser({ email: 'admin@bolamaisum.com' } as User);
-      }
+    const adminStatus = localStorage.getItem('isAdmin');
+    if (adminStatus === 'true') {
+      setIsAdmin(true);
     }
   }, []);
 
   const signIn = async (username: string, password: string): Promise<boolean> => {
-    try {
-      setLoading(true);
-
-      if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        const adminSession = {
-          username,
-          timestamp: Date.now()
-        };
-        
-        localStorage.setItem('admin_session', JSON.stringify(adminSession));
-        setIsAdmin(true);
-        setUser({ email: 'admin@bolamaisum.com' } as User);
-        
-        toast.success('Login de administrador realizado com sucesso!');
-        return true;
-      } else {
-        toast.error('Credenciais inválidas');
-        return false;
-      }
-    } catch (error) {
-      toast.error('Erro ao fazer login');
-      return false;
-    } finally {
+    setLoading(true);
+    
+    // Simulate loading time
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      setIsAdmin(true);
+      localStorage.setItem('isAdmin', 'true');
       setLoading(false);
+      return true;
     }
+    
+    setLoading(false);
+    return false;
   };
 
-  const signOut = async () => {
-    try {
-      localStorage.removeItem('admin_session');
-      setIsAdmin(false);
-      setUser(null);
-      setSession(null);
-      toast.success('Logout realizado com sucesso!');
-    } catch (error) {
-      toast.error('Erro ao fazer logout');
-    }
+  const signOut = () => {
+    setIsAdmin(false);
+    localStorage.removeItem('isAdmin');
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signIn, signOut }}>
+    <AuthContext.Provider value={{ isAdmin, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

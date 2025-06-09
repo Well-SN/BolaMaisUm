@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { X, Save, UserMinus, UserPlus } from 'lucide-react';
@@ -13,13 +14,8 @@ interface TeamEditorProps {
 
 const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
   const { state, dispatch } = useGame();
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(team.players.map(p => p.id));
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  
-  // Initialize with current team players
-  useEffect(() => {
-    setSelectedPlayers(team.players.map(p => p.id));
-  }, [team]);
   
   const handleSaveTeamRequest = () => {
     if (selectedPlayers.length === 0) {
@@ -69,6 +65,30 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
     player => !team.players.some(p => p.id === player.id)
   );
   
+  // Categorize players by their state
+  const getPlayerState = (player: Player) => {
+    const wasInTeam = team.players.some(p => p.id === player.id);
+    const isSelected = isPlayerSelected(player.id);
+    
+    if (wasInTeam && !isSelected) return 'removing'; // Red - being removed
+    if (!wasInTeam && isSelected) return 'adding';   // Green - being added
+    if (wasInTeam && isSelected) return 'unchanged'; // Default - staying
+    return 'available'; // Default - not selected, not in team
+  };
+  
+  const getPlayerStyles = (playerState: string) => {
+    switch (playerState) {
+      case 'removing':
+        return 'bg-red-500/20 border border-red-500 text-red-300';
+      case 'adding':
+        return 'bg-green-500/20 border border-green-500 text-green-300';
+      case 'unchanged':
+        return 'bg-blue-500/20 border border-blue-500 text-blue-300';
+      default:
+        return 'border border-gray-600';
+    }
+  };
+  
   return (
     <>
       <motion.div 
@@ -96,18 +116,25 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
           <div className="mb-4">
             <h3 className="text-base sm:text-lg mb-2 font-bold">Jogadores Atuais</h3>
             <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
-              {team.players.map((player: Player) => (
-                <div 
-                  key={player.id}
-                  onClick={() => togglePlayer(player.id)}
-                  className={`player-item cursor-pointer flex items-center p-2 rounded ${
-                    isPlayerSelected(player.id) ? 'border border-neon-orange' : ''
-                  }`}
-                >
-                  <UserMinus size={16} className="text-neon-orange mr-2 flex-shrink-0" />
-                  <span className="truncate">{player.name}</span>
-                </div>
-              ))}
+              {team.players.map((player: Player) => {
+                const playerState = getPlayerState(player);
+                return (
+                  <div 
+                    key={player.id}
+                    onClick={() => togglePlayer(player.id)}
+                    className={`player-item cursor-pointer flex items-center p-2 rounded ${getPlayerStyles(playerState)}`}
+                  >
+                    <UserMinus size={16} className="mr-2 flex-shrink-0" />
+                    <span className="truncate">{player.name}</span>
+                    {playerState === 'removing' && (
+                      <span className="ml-auto text-red-400 text-xs">Removendo</span>
+                    )}
+                    {playerState === 'unchanged' && (
+                      <span className="ml-auto text-blue-400 text-xs">Mantendo</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
           
@@ -115,18 +142,22 @@ const TeamEditor: React.FC<TeamEditorProps> = ({ team, onClose }) => {
             <h3 className="text-base sm:text-lg mb-2 font-bold">Jogadores Disponíveis</h3>
             {availablePlayers.length > 0 ? (
               <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
-                {availablePlayers.map((player: Player) => (
-                  <div 
-                    key={player.id}
-                    onClick={() => togglePlayer(player.id)}
-                    className={`player-item cursor-pointer flex items-center p-2 rounded ${
-                      isPlayerSelected(player.id) ? 'border border-neon-blue' : ''
-                    }`}
-                  >
-                    <UserPlus size={16} className="text-neon-blue mr-2 flex-shrink-0" />
-                    <span className="truncate">{player.name}</span>
-                  </div>
-                ))}
+                {availablePlayers.map((player: Player) => {
+                  const playerState = getPlayerState(player);
+                  return (
+                    <div 
+                      key={player.id}
+                      onClick={() => togglePlayer(player.id)}
+                      className={`player-item cursor-pointer flex items-center p-2 rounded ${getPlayerStyles(playerState)}`}
+                    >
+                      <UserPlus size={16} className="mr-2 flex-shrink-0" />
+                      <span className="truncate">{player.name}</span>
+                      {playerState === 'adding' && (
+                        <span className="ml-auto text-green-400 text-xs">Adicionando</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-gray-400 italic">Nenhum jogador disponível</p>
