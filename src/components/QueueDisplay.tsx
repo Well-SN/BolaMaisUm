@@ -6,7 +6,7 @@ import { useGame } from '../contexts/GameContext';
 import { useAuth } from '../contexts/AuthContext';
 import TeamDisplay from './TeamDisplay';
 import TeamEditor from './TeamEditor';
-import { Team } from '../types';
+import { Team, ActionType } from '../types';
 
 const QueueDisplay: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -30,45 +30,67 @@ const QueueDisplay: React.FC = () => {
   
   const moveTeamUp = (teamIndex: number) => {
     if (teamIndex > 0 && isAdmin) {
-      const currentTeam = filteredTeams[teamIndex];
-      const teamAbove = filteredTeams[teamIndex - 1];
+      console.log('Moving team up - Index:', teamIndex);
       
-      // Find actual indices in the full teams array
-      const currentTeamIndex = state.teams.findIndex(t => t.id === currentTeam.id);
-      const teamAboveIndex = state.teams.findIndex(t => t.id === teamAbove.id);
+      const currentTeam = queuedTeams[teamIndex];
+      const teamAbove = queuedTeams[teamIndex - 1];
+      
+      console.log('Current team:', currentTeam.name, 'Team above:', teamAbove.name);
+      
+      // Create a new teams array with swapped positions
+      const newTeams = [...state.teams];
+      const currentTeamIndex = newTeams.findIndex(t => t.id === currentTeam.id);
+      const teamAboveIndex = newTeams.findIndex(t => t.id === teamAbove.id);
       
       if (currentTeamIndex !== -1 && teamAboveIndex !== -1) {
-        const newTeams = [...state.teams];
+        // Swap the teams in the array - preserving all data
         [newTeams[currentTeamIndex], newTeams[teamAboveIndex]] = [newTeams[teamAboveIndex], newTeams[currentTeamIndex]];
         
-        // Update state with new team order
-        const newState = { ...state, teams: newTeams };
+        console.log('Swapping teams at indices:', currentTeamIndex, teamAboveIndex);
+        
+        // Use a specific action type for reordering to avoid data loss
         dispatch({
-          type: 'INITIALIZE_GAME' as any,
-          payload: { state: newState }
+          type: ActionType.INITIALIZE_GAME,
+          payload: { 
+            state: {
+              ...state,
+              teams: newTeams
+            }
+          }
         });
       }
     }
   };
 
   const moveTeamDown = (teamIndex: number) => {
-    if (teamIndex < filteredTeams.length - 1 && isAdmin) {
-      const currentTeam = filteredTeams[teamIndex];
-      const teamBelow = filteredTeams[teamIndex + 1];
+    if (teamIndex < queuedTeams.length - 1 && isAdmin) {
+      console.log('Moving team down - Index:', teamIndex);
       
-      // Find actual indices in the full teams array
-      const currentTeamIndex = state.teams.findIndex(t => t.id === currentTeam.id);
-      const teamBelowIndex = state.teams.findIndex(t => t.id === teamBelow.id);
+      const currentTeam = queuedTeams[teamIndex];
+      const teamBelow = queuedTeams[teamIndex + 1];
+      
+      console.log('Current team:', currentTeam.name, 'Team below:', teamBelow.name);
+      
+      // Create a new teams array with swapped positions
+      const newTeams = [...state.teams];
+      const currentTeamIndex = newTeams.findIndex(t => t.id === currentTeam.id);
+      const teamBelowIndex = newTeams.findIndex(t => t.id === teamBelow.id);
       
       if (currentTeamIndex !== -1 && teamBelowIndex !== -1) {
-        const newTeams = [...state.teams];
+        // Swap the teams in the array - preserving all data
         [newTeams[currentTeamIndex], newTeams[teamBelowIndex]] = [newTeams[teamBelowIndex], newTeams[currentTeamIndex]];
         
-        // Update state with new team order
-        const newState = { ...state, teams: newTeams };
+        console.log('Swapping teams at indices:', currentTeamIndex, teamBelowIndex);
+        
+        // Use a specific action type for reordering to avoid data loss
         dispatch({
-          type: 'INITIALIZE_GAME' as any,
-          payload: { state: newState }
+          type: ActionType.INITIALIZE_GAME,
+          payload: { 
+            state: {
+              ...state,
+              teams: newTeams
+            }
+          }
         });
       }
     }
@@ -121,14 +143,14 @@ const QueueDisplay: React.FC = () => {
                       {isAdmin && (
                         <div className="flex gap-1">
                           <button 
-                            onClick={() => moveTeamUp(index)}
+                            onClick={() => moveTeamUp(queuedTeams.findIndex(t => t.id === team.id))}
                             disabled={actualPosition === 1}
                             className="text-gray-400 hover:text-white disabled:opacity-30 p-1"
                           >
                             <ChevronUp size={12} />
                           </button>
                           <button 
-                            onClick={() => moveTeamDown(index)}
+                            onClick={() => moveTeamDown(queuedTeams.findIndex(t => t.id === team.id))}
                             disabled={actualPosition === queuedTeams.length}
                             className="text-gray-400 hover:text-white disabled:opacity-30 p-1"
                           >
