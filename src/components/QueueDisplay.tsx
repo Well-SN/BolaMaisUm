@@ -19,15 +19,23 @@ const QueueDisplay: React.FC = () => {
     !team.isPlaying // Not currently playing
   );
   
+  // Se há um jogo completo (teamA e teamB), remover o primeiro da fila (que já aparece como "Próximo time")
+  const hasCompleteGame = state.currentGame.teamA && state.currentGame.teamB;
+  const displayedQueuedTeams = hasCompleteGame && queuedTeams.length > 0 
+    ? queuedTeams.slice(1) // Remove o primeiro (que já aparece como "Próximo time")
+    : queuedTeams;
+  
   console.log('All teams:', state.teams.map(t => `${t.name} (playing: ${t.isPlaying}, players: ${t.players.length})`));
   console.log('Queued teams:', queuedTeams.map(t => t.name));
+  console.log('Displayed queued teams:', displayedQueuedTeams.map(t => t.name));
+  console.log('Has complete game:', hasCompleteGame);
   console.log('Current game:', {
     teamA: state.currentGame.teamA?.name,
     teamB: state.currentGame.teamB?.name
   });
   
   // Filter teams based on search query
-  const filteredTeams = queuedTeams.filter(team =>
+  const filteredTeams = displayedQueuedTeams.filter(team =>
     team.players.some(player =>
       player.name.toLowerCase().includes(searchQuery.toLowerCase())
     ) || team.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -37,8 +45,8 @@ const QueueDisplay: React.FC = () => {
     if (teamIndex > 0 && isAdmin) {
       console.log('Moving team up - Index:', teamIndex);
       
-      const currentTeam = queuedTeams[teamIndex];
-      const teamAbove = queuedTeams[teamIndex - 1];
+      const currentTeam = displayedQueuedTeams[teamIndex];
+      const teamAbove = displayedQueuedTeams[teamIndex - 1];
       
       console.log('Current team:', currentTeam.name, 'Team above:', teamAbove.name);
       
@@ -68,11 +76,11 @@ const QueueDisplay: React.FC = () => {
   };
 
   const moveTeamDown = (teamIndex: number) => {
-    if (teamIndex < queuedTeams.length - 1 && isAdmin) {
+    if (teamIndex < displayedQueuedTeams.length - 1 && isAdmin) {
       console.log('Moving team down - Index:', teamIndex);
       
-      const currentTeam = queuedTeams[teamIndex];
-      const teamBelow = queuedTeams[teamIndex + 1];
+      const currentTeam = displayedQueuedTeams[teamIndex];
+      const teamBelow = displayedQueuedTeams[teamIndex + 1];
       
       console.log('Current team:', currentTeam.name, 'Team below:', teamBelow.name);
       
@@ -101,7 +109,7 @@ const QueueDisplay: React.FC = () => {
     }
   };
 
-  if (queuedTeams.length === 0) {
+  if (displayedQueuedTeams.length === 0) {
     return (
       <motion.div 
         className="card"
@@ -114,7 +122,10 @@ const QueueDisplay: React.FC = () => {
           <h2 className="text-lg font-graffiti">Fila</h2>
         </div>
         <p className="text-gray-400 italic text-sm">
-          Não há equipes na fila. Todos os times estão jogando ou não há times disponíveis.
+          {queuedTeams.length === 0 
+            ? "Não há equipes na fila. Todos os times estão jogando ou não há times disponíveis."
+            : "Não há mais equipes na fila além do próximo time."
+          }
         </p>
       </motion.div>
     );
@@ -131,7 +142,7 @@ const QueueDisplay: React.FC = () => {
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <ClipboardList size={18} className="text-neon-blue" />
-            <h2 className="text-lg font-graffiti">Fila ({queuedTeams.length} times)</h2>
+            <h2 className="text-lg font-graffiti">Fila ({displayedQueuedTeams.length} times)</h2>
           </div>
           
           <div className="relative flex-1 max-w-md">
@@ -150,29 +161,29 @@ const QueueDisplay: React.FC = () => {
           <div className="space-y-3">
             {filteredTeams.map((team, index) => {
               // Calculate the actual position in the queue based on the original order
-              const actualPosition = queuedTeams.findIndex(t => t.id === team.id) + 1;
-              const isNext = actualPosition === 1;
+              // Add 1 because we removed the first team (próximo time)
+              const actualPosition = displayedQueuedTeams.findIndex(t => t.id === team.id) + (hasCompleteGame ? 2 : 1);
               
               return (
-                <div key={team.id} className={`${isNext ? 'bg-neon-blue/10 border border-neon-blue/30 rounded-lg p-2' : ''}`}>
+                <div key={team.id}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold ${isNext ? 'text-neon-blue' : 'text-gray-400'}`}>
-                        {isNext ? 'PRÓXIMO' : `${actualPosition}º na fila`}
+                      <span className="text-xs font-bold text-gray-400">
+                        {actualPosition}º na fila
                       </span>
                       {isAdmin && (
                         <div className="flex gap-1">
                           <button 
-                            onClick={() => moveTeamUp(queuedTeams.findIndex(t => t.id === team.id))}
-                            disabled={actualPosition === 1}
+                            onClick={() => moveTeamUp(displayedQueuedTeams.findIndex(t => t.id === team.id))}
+                            disabled={index === 0}
                             className="text-gray-400 hover:text-white disabled:opacity-30 p-1"
                             title="Mover para cima"
                           >
                             <ChevronUp size={12} />
                           </button>
                           <button 
-                            onClick={() => moveTeamDown(queuedTeams.findIndex(t => t.id === team.id))}
-                            disabled={actualPosition === queuedTeams.length}
+                            onClick={() => moveTeamDown(displayedQueuedTeams.findIndex(t => t.id === team.id))}
+                            disabled={index === displayedQueuedTeams.length - 1}
                             className="text-gray-400 hover:text-white disabled:opacity-30 p-1"
                             title="Mover para baixo"
                           >
@@ -190,7 +201,7 @@ const QueueDisplay: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  <TeamDisplay team={team} isNext={isNext} />
+                  <TeamDisplay team={team} isNext={false} />
                 </div>
               );
             })}

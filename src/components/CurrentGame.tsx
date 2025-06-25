@@ -56,11 +56,11 @@ const CurrentGame: React.FC = () => {
     setEditingTeam(team);
   };
   
-  // Find the next team in the queue (first team not playing)
-  const nextTeam = state.teams.find(team => 
+  // Find the next team in the queue (first team not playing) - only when there's a complete game
+  const nextTeam = (currentGame.teamA && currentGame.teamB) ? state.teams.find(team => 
     team.players.length > 0 && // Has players
     !team.isPlaying // Not currently playing
-  );
+  ) : null;
 
   const getWinnerTeamName = () => {
     if (!selectedWinner) return '';
@@ -166,9 +166,10 @@ const CurrentGame: React.FC = () => {
               <div className="text-center p-4 bg-court border border-dashed border-gray-600 rounded-lg">
                 <AlertCircle size={20} className="mx-auto mb-2 text-neon-orange" />
                 <p className="text-gray-300 text-sm">Aguardando outro time...</p>
-                {nextTeam && (
+                {/* Mostrar próximo time apenas quando não há teamB */}
+                {state.teams.find(team => team.players.length > 0 && !team.isPlaying) && (
                   <p className="text-neon-blue text-xs mt-1">
-                    Próximo: {nextTeam.name}
+                    Próximo: {state.teams.find(team => team.players.length > 0 && !team.isPlaying)?.name}
                   </p>
                 )}
               </div>
@@ -177,6 +178,7 @@ const CurrentGame: React.FC = () => {
         </div>
       </motion.div>
       
+      {/* Mostrar seção "Próximo time" apenas quando há um jogo completo (teamA e teamB) */}
       {nextTeam && currentGame.teamA && currentGame.teamB && (
         <motion.div 
           className="card mb-4"
