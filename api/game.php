@@ -107,34 +107,41 @@ function setWinner($db) {
             ? $currentGame['team_b_id'] 
             : $currentGame['team_a_id'];
         
-        // Update team playing status
-        $updateQuery = "UPDATE teams SET is_playing = CASE 
-                                        WHEN id = ? THEN TRUE 
-                                        WHEN id = ? THEN FALSE 
-                                        ELSE is_playing 
-                                        END";
-        $updateStmt = $db->prepare($updateQuery);
-        $updateStmt->execute([$data->winnerId, $loserId]);
+        // Set all teams to not playing first
+        $resetQuery = "UPDATE teams SET is_playing = FALSE";
+        $db->exec($resetQuery);
         
-        // Get next team in queue
+        // Set winner as playing
+        $winnerQuery = "UPDATE teams SET is_playing = TRUE WHERE id = ?";
+        $winnerStmt = $db->prepare($winnerQuery);
+        $winnerStmt->execute([$data->winnerId]);
+        
+        // Get next team in queue (first team that's not playing and not the loser)
         $nextTeamQuery = "SELECT id FROM teams 
                          WHERE is_playing = FALSE 
-                         AND id NOT IN (?, ?) 
-                         AND id IN (SELECT DISTINCT team_id FROM team_players)
+                         AND id != ? 
+                         AND id IN (SELECT DISTINCT team_id FROM team_players WHERE team_id IN (SELECT id FROM teams))
                          ORDER BY created_at ASC 
                          LIMIT 1";
         $nextTeamStmt = $db->prepare($nextTeamQuery);
-        $nextTeamStmt->execute([$data->winnerId, $loserId]);
+        $nextTeamStmt->execute([$loserId]);
         $nextTeam = $nextTeamStmt->fetch(PDO::FETCH_ASSOC);
         
-        // Update current game
-        $newTeamBId = $nextTeam ? $nextTeam['id'] : null;
-        if($newTeamBId) {
-            $updateTeamQuery = "UPDATE teams SET is_playing = TRUE WHERE id = ?";
-            $updateTeamStmt = $db->prepare($updateTeamQuery);
-            $updateTeamStmt->execute([$newTeamBId]);
+        $newTeamBId = null;
+        if($nextTeam) {
+            $newTeamBId = $nextTeam['id'];
+            // Set next team as playing
+            $nextTeamUpdateQuery = "UPDATE teams SET is_playing = TRUE WHERE id = ?";
+            $nextTeamUpdateStmt = $db->prepare($nextTeamUpdateQuery);
+            $nextTeamUpdateStmt->execute([$newTeamBId]);
         }
         
+        // Move loser to end of queue by updating its created_at timestamp
+        $moveLoserQuery = "UPDATE teams SET created_at = NOW() WHERE id = ?";
+        $moveLoserStmt = $db->prepare($moveLoserQuery);
+        $moveLoserStmt->execute([$loserId]);
+        
+        // Update current game
         $updateGameQuery = "UPDATE current_game SET team_a_id = ?, team_b_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 'current-game-id'";
         $updateGameStmt = $db->prepare($updateGameQuery);
         $updateGameStmt->execute([$data->winnerId, $newTeamBId]);

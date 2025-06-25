@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -57,11 +56,10 @@ const CurrentGame: React.FC = () => {
     setEditingTeam(team);
   };
   
-  // Find the next team in the queue
+  // Find the next team in the queue (first team not playing)
   const nextTeam = state.teams.find(team => 
-    !team.isPlaying && 
-    team.id !== currentGame.teamA?.id && 
-    team.id !== currentGame.teamB?.id
+    team.players.length > 0 && // Has players
+    !team.isPlaying // Not currently playing
   );
 
   const getWinnerTeamName = () => {
@@ -168,13 +166,18 @@ const CurrentGame: React.FC = () => {
               <div className="text-center p-4 bg-court border border-dashed border-gray-600 rounded-lg">
                 <AlertCircle size={20} className="mx-auto mb-2 text-neon-orange" />
                 <p className="text-gray-300 text-sm">Aguardando outro time...</p>
+                {nextTeam && (
+                  <p className="text-neon-blue text-xs mt-1">
+                    Próximo: {nextTeam.name}
+                  </p>
+                )}
               </div>
             </div>
           )}
         </div>
       </motion.div>
       
-      {nextTeam && (
+      {nextTeam && currentGame.teamA && currentGame.teamB && (
         <motion.div 
           className="card mb-4"
           initial={{ opacity: 0, y: 20 }}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ClipboardList, Edit, Search, ChevronUp, ChevronDown } from 'lucide-react';
@@ -14,12 +13,18 @@ const QueueDisplay: React.FC = () => {
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Get teams that are in the queue (not currently playing)
+  // Get teams that are in the queue (not currently playing and have players)
   const queuedTeams = state.teams.filter(team => 
-    !team.isPlaying && 
-    team.id !== state.currentGame.teamA?.id && 
-    team.id !== state.currentGame.teamB?.id
+    team.players.length > 0 && // Only teams with players
+    !team.isPlaying // Not currently playing
   );
+  
+  console.log('All teams:', state.teams.map(t => `${t.name} (playing: ${t.isPlaying}, players: ${t.players.length})`));
+  console.log('Queued teams:', queuedTeams.map(t => t.name));
+  console.log('Current game:', {
+    teamA: state.currentGame.teamA?.name,
+    teamB: state.currentGame.teamB?.name
+  });
   
   // Filter teams based on search query
   const filteredTeams = queuedTeams.filter(team =>
@@ -97,7 +102,22 @@ const QueueDisplay: React.FC = () => {
   };
 
   if (queuedTeams.length === 0) {
-    return null;
+    return (
+      <motion.div 
+        className="card"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <ClipboardList size={18} className="text-neon-blue" />
+          <h2 className="text-lg font-graffiti">Fila</h2>
+        </div>
+        <p className="text-gray-400 italic text-sm">
+          Não há equipes na fila. Todos os times estão jogando ou não há times disponíveis.
+        </p>
+      </motion.div>
+    );
   }
   
   return (
@@ -111,7 +131,7 @@ const QueueDisplay: React.FC = () => {
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <ClipboardList size={18} className="text-neon-blue" />
-            <h2 className="text-lg font-graffiti">Fila</h2>
+            <h2 className="text-lg font-graffiti">Fila ({queuedTeams.length} times)</h2>
           </div>
           
           <div className="relative flex-1 max-w-md">
@@ -137,8 +157,8 @@ const QueueDisplay: React.FC = () => {
                 <div key={team.id} className={`${isNext ? 'bg-neon-blue/10 border border-neon-blue/30 rounded-lg p-2' : ''}`}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs ${isNext ? 'text-neon-blue font-bold' : 'text-gray-400'}`}>
-                        {isNext ? '' : `Posição ${actualPosition}`}
+                      <span className={`text-xs font-bold ${isNext ? 'text-neon-blue' : 'text-gray-400'}`}>
+                        {isNext ? 'PRÓXIMO' : `${actualPosition}º na fila`}
                       </span>
                       {isAdmin && (
                         <div className="flex gap-1">
@@ -146,6 +166,7 @@ const QueueDisplay: React.FC = () => {
                             onClick={() => moveTeamUp(queuedTeams.findIndex(t => t.id === team.id))}
                             disabled={actualPosition === 1}
                             className="text-gray-400 hover:text-white disabled:opacity-30 p-1"
+                            title="Mover para cima"
                           >
                             <ChevronUp size={12} />
                           </button>
@@ -153,6 +174,7 @@ const QueueDisplay: React.FC = () => {
                             onClick={() => moveTeamDown(queuedTeams.findIndex(t => t.id === team.id))}
                             disabled={actualPosition === queuedTeams.length}
                             className="text-gray-400 hover:text-white disabled:opacity-30 p-1"
+                            title="Mover para baixo"
                           >
                             <ChevronDown size={12} />
                           </button>
@@ -179,7 +201,7 @@ const QueueDisplay: React.FC = () => {
           </p>
         ) : (
           <p className="text-gray-400 italic text-sm">
-            Não há equipes na fila. Adicione mais equipes para manter os jogos!
+            Não há equipes na fila.
           </p>
         )}
       </motion.div>
